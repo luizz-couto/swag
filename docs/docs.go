@@ -244,6 +244,167 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/sync": {
+            "get": {
+                "description": "Sync the Salesdesk template data with the data from engagement. It will get all botIds in our DB and update out of sync templates in Engagement for that given BotIds",
+                "tags": [
+                    "Template"
+                ],
+                "operationId": "syncTemplates",
+                "responses": {
+                    "200": {
+                        "description": "Synchronization completed successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/template": {
+            "get": {
+                "description": "Returns a list of templates for a given account and departments that matches a search string",
+                "tags": [
+                    "Template"
+                ],
+                "operationId": "getTemplates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "accountId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Departments IDs, separated by comma",
+                        "name": "departmentsIds",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search term",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Boolean value: whether the templates to be searched are active or not. Deafult false",
+                        "name": "isActiveSalesdesk",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/template.TemplatePaginatedDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing AccountId input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/template/{id}": {
+            "get": {
+                "description": "Get template by ID",
+                "tags": [
+                    "Template"
+                ],
+                "operationId": "getTemplate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Boolean value: If 'true' it will return additional information from engagement about this template",
+                        "name": "full",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returned Template",
+                        "schema": {}
+                    },
+                    "400": {
+                        "description": "Unable to get template for given id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found template for given id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update template custom fields",
+                "tags": [
+                    "Template"
+                ],
+                "operationId": "updateTemplate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Template body params",
+                        "name": "TemplateUpdateRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.TemplateData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template updated successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/v2/bot": {
             "get": {
                 "description": "Returns all bots info for the given Instance (AccountID)",
@@ -400,6 +561,103 @@ const docTemplate = `{
                 },
                 "webhook": {
                     "type": "string"
+                }
+            }
+        },
+        "models.NamedError": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.TemplateData": {
+            "type": "object",
+            "properties": {
+                "isActiveSalesdesk": {
+                    "type": "boolean"
+                },
+                "sharedWith": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "template.SyncTemplatesErrorResponse": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.NamedError"
+                    }
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "template.TemplateDAO": {
+            "type": "object",
+            "properties": {
+                "bodyText": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "isActiveSalesdesk": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sharedWith": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subscriptionID": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "template.TemplatePaginatedDTO": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "templates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/template.TemplateDAO"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         }

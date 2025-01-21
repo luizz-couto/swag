@@ -1160,13 +1160,17 @@ func processAsyncAPIScope(parser *Parser, asyncAPIScope *AsyncScope) error {
 	}
 
 	for channelName, channel := range asyncAPIScope.channels {
+		if alreadyExistentChannel, ok := parser.asyncAPI.Channels[channelName]; ok {
+			channel.Publish = alreadyExistentChannel.Publish
+			channel.Subscribe = alreadyExistentChannel.Subscribe
+		}
 		parser.asyncAPI.Channels[channelName] = *channel
 	}
 
 	for _, operation := range asyncAPIScope.operations {
 		operationChannel, ok := parser.asyncAPI.Channels[operation.channelName]
 		if !ok {
-			continue
+			operationChannel = asyncSpec.ChannelItem{}
 		}
 
 		if operation.kind == "consumer" {

@@ -80,6 +80,69 @@ definitions:
       webhook:
         type: string
     type: object
+  models.NamedError:
+    properties:
+      name:
+        type: string
+      reason:
+        type: string
+    type: object
+  models.TemplateData:
+    properties:
+      isActiveSalesdesk:
+        type: boolean
+      sharedWith:
+        items:
+          type: string
+        type: array
+    type: object
+  template.SyncTemplatesErrorResponse:
+    properties:
+      errors:
+        items:
+          $ref: '#/definitions/models.NamedError'
+        type: array
+      success:
+        type: boolean
+    type: object
+  template.TemplateDAO:
+    properties:
+      bodyText:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      isActive:
+        type: boolean
+      isActiveSalesdesk:
+        type: boolean
+      name:
+        type: string
+      sharedWith:
+        items:
+          type: integer
+        type: array
+      status:
+        type: string
+      subscriptionID:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  template.TemplatePaginatedDTO:
+    properties:
+      count:
+        type: integer
+      offset:
+        type: integer
+      templates:
+        items:
+          $ref: '#/definitions/template.TemplateDAO'
+        type: array
+      total:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -238,6 +301,118 @@ paths:
             type: string
       tags:
       - Bot
+  /v1/sync:
+    get:
+      description: Sync the Salesdesk template data with the data from engagement.
+        It will get all botIds in our DB and update out of sync templates in Engagement
+        for that given BotIds
+      operationId: syncTemplates
+      responses:
+        "200":
+          description: Synchronization completed successfully
+          schema:
+            type: string
+      tags:
+      - Template
+  /v1/template:
+    get:
+      description: Returns a list of templates for a given account and departments
+        that matches a search string
+      operationId: getTemplates
+      parameters:
+      - description: Account ID
+        in: query
+        name: accountId
+        required: true
+        type: string
+      - description: Departments IDs, separated by comma
+        in: query
+        name: departmentsIds
+        type: string
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      - description: 'Boolean value: whether the templates to be searched are active
+          or not. Deafult false'
+        in: query
+        name: isActiveSalesdesk
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/template.TemplatePaginatedDTO'
+        "400":
+          description: Missing AccountId input
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Template
+  /v1/template/{id}:
+    get:
+      description: Get template by ID
+      operationId: getTemplate
+      parameters:
+      - description: The template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Boolean value: If ''true'' it will return additional information
+          from engagement about this template'
+        in: query
+        name: full
+        required: true
+        type: boolean
+      responses:
+        "200":
+          description: Returned Template
+          schema: {}
+        "400":
+          description: Unable to get template for given id
+          schema:
+            type: string
+        "404":
+          description: Not Found template for given id
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Template
+    put:
+      description: Update template custom fields
+      operationId: updateTemplate
+      parameters:
+      - description: The template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Template body params
+        in: body
+        name: TemplateUpdateRequest
+        required: true
+        schema:
+          $ref: '#/definitions/models.TemplateData'
+      responses:
+        "200":
+          description: Template updated successfully
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Template
   /v2/bot:
     get:
       description: Returns all bots info for the given Instance (AccountID)
