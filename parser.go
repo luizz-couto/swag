@@ -1270,7 +1270,7 @@ func convertFromSpecificToPrimitive(typeName string) (string, error) {
 	return typeName, ErrFailedConvertPrimitiveType
 }
 
-func (parser *Parser) getTypeSchema(typeName string, file *ast.File, ref bool) (*spec.Schema, error) {
+func (parser *Parser) getTypeSchema(typeName string, file *ast.File, ref bool, forAsyncAPI bool) (*spec.Schema, error) {
 	if override, ok := parser.Overrides[typeName]; ok {
 		parser.debug.Printf("Override detected for %s: using %s instead", typeName, override)
 		return parseObjectSchema(parser, override, file)
@@ -1317,7 +1317,7 @@ func (parser *Parser) getTypeSchema(typeName string, file *ast.File, ref bool) (
 	if !ok {
 		var err error
 
-		schema, err = parser.ParseDefinition(typeSpecDef)
+		schema, err = parser.ParseDefinition(typeSpecDef, forAsyncAPI)
 		if err != nil {
 			if err == ErrRecursiveParseStruct && ref {
 				return parser.getRefTypeSchema(typeSpecDef, schema), nil
@@ -1368,12 +1368,16 @@ func (parser *Parser) isInStructStack(typeSpecDef *TypeSpecDef) bool {
 // ParseDefinition parses given type spec that corresponds to the type under
 // given name and package, and populates swagger schema definitions registry
 // with a schema for the given type
-func (parser *Parser) ParseDefinition(typeSpecDef *TypeSpecDef) (*Schema, error) {
+func (parser *Parser) ParseDefinition(typeSpecDef *TypeSpecDef, forAsyncAPI bool) (*Schema, error) {
 	typeName := typeSpecDef.TypeName()
 	schema, found := parser.parsedSchemas[typeSpecDef]
 	if found {
 		parser.debug.Printf("Skipping '%s', already parsed.", typeName)
-
+		if forAsyncAPI {
+			schema.UsedForAsyncAPI = true
+		} else {
+			schema.UsedForOpenAPI = true
+		}
 		return schema, nil
 	}
 
@@ -1392,7 +1396,7 @@ func (parser *Parser) ParseDefinition(typeSpecDef *TypeSpecDef) (*Schema, error)
 
 	parser.debug.Printf("Generating %s", typeName)
 
-	definition, err := parser.parseTypeExpr(typeSpecDef.File, typeSpecDef.TypeSpec.Type, false)
+	definition, err := parser.parseTypeExpr(typeSpecDef.File, typeSpecDef.TypeSpec.Type, false, forAsyncAPI)
 	if err != nil {
 		parser.debug.Printf("Error parsing type definition '%s': %s", typeName, err)
 		return nil, err
@@ -1438,6 +1442,13 @@ func (parser *Parser) ParseDefinition(typeSpecDef *TypeSpecDef) (*Schema, error)
 		PkgPath: typeSpecDef.PkgPath,
 		Schema:  definition,
 	}
+
+	if forAsyncAPI {
+		sch.UsedForAsyncAPI = true
+	} else {
+		sch.UsedForOpenAPI = true
+	}
+
 	parser.parsedSchemas[typeSpecDef] = &sch
 
 	// update an empty schema as a result of recursion
@@ -1540,7 +1551,7 @@ func (parser *Parser) extractDeclarationDescription(typeName string, commentGrou
 
 // parseTypeExpr parses given type expression that corresponds to the type under
 // given name and package, and returns swagger schema for it.
-func (parser *Parser) parseTypeExpr(file *ast.File, typeExpr ast.Expr, ref bool) (*spec.Schema, error) {
+func (parser *Parser) parseTypeExpr(file *ast.File, typeExpr ast.Expr, ref bool, forAsyncAPI bool) (*spec.Schema, error) {
 	switch expr := typeExpr.(type) {
 	// type Foo interface{}
 	case *ast.InterfaceType:
@@ -1548,24 +1559,24 @@ func (parser *Parser) parseTypeExpr(file *ast.File, typeExpr ast.Expr, ref bool)
 
 	// type Foo struct {...}
 	case *ast.StructType:
-		return parser.parseStruct(file, expr.Fields)
+		return parser.parseStruct(file, expr.Fields, forAsyncAPI)
 
 	// type Foo Baz
 	case *ast.Ident:
-		return parser.getTypeSchema(expr.Name, file, ref)
+		return parser.getTypeSchema(expr.Name, file, ref, forAsyncAPI)
 
 	// type Foo *Baz
 	case *ast.StarExpr:
-		return parser.parseTypeExpr(file, expr.X, ref)
+		return parser.parseTypeExpr(file, expr.X, ref, forAsyncAPI)
 
 	// type Foo pkg.Bar
 	case *ast.SelectorExpr:
 		if xIdent, ok := expr.X.(*ast.Ident); ok {
-			return parser.getTypeSchema(fullTypeName(xIdent.Name, expr.Sel.Name), file, ref)
+			return parser.getTypeSchema(fullTypeName(xIdent.Name, expr.Sel.Name), file, ref, forAsyncAPI)
 		}
 	// type Foo []Baz
 	case *ast.ArrayType:
-		itemSchema, err := parser.parseTypeExpr(file, expr.Elt, true)
+		itemSchema, err := parser.parseTypeExpr(file, expr.Elt, true, forAsyncAPI)
 		if err != nil {
 			return nil, err
 		}
@@ -1576,7 +1587,7 @@ func (parser *Parser) parseTypeExpr(file *ast.File, typeExpr ast.Expr, ref bool)
 		if _, ok := expr.Value.(*ast.InterfaceType); ok {
 			return spec.MapProperty(nil), nil
 		}
-		schema, err := parser.parseTypeExpr(file, expr.Value, true)
+		schema, err := parser.parseTypeExpr(file, expr.Value, true, forAsyncAPI)
 		if err != nil {
 			return nil, err
 		}
@@ -1588,14 +1599,14 @@ func (parser *Parser) parseTypeExpr(file *ast.File, typeExpr ast.Expr, ref bool)
 		// ...
 	}
 
-	return parser.parseGenericTypeExpr(file, typeExpr)
+	return parser.parseGenericTypeExpr(file, typeExpr, forAsyncAPI)
 }
 
-func (parser *Parser) parseStruct(file *ast.File, fields *ast.FieldList) (*spec.Schema, error) {
+func (parser *Parser) parseStruct(file *ast.File, fields *ast.FieldList, forAsyncAPI bool) (*spec.Schema, error) {
 	required, properties := make([]string, 0), make(map[string]spec.Schema)
 
 	for _, field := range fields.List {
-		fieldProps, requiredFromAnon, err := parser.parseStructField(file, field)
+		fieldProps, requiredFromAnon, err := parser.parseStructField(file, field, forAsyncAPI)
 		if err != nil {
 			if errors.Is(err, ErrFuncTypeField) || errors.Is(err, ErrSkippedField) {
 				continue
@@ -1626,7 +1637,7 @@ func (parser *Parser) parseStruct(file *ast.File, fields *ast.FieldList) (*spec.
 	}, nil
 }
 
-func (parser *Parser) parseStructField(file *ast.File, field *ast.Field) (map[string]spec.Schema, []string, error) {
+func (parser *Parser) parseStructField(file *ast.File, field *ast.Field, forAsyncAPI bool) (map[string]spec.Schema, []string, error) {
 	if field.Tag != nil {
 		skip, ok := reflect.StructTag(strings.ReplaceAll(field.Tag.Value, "`", "")).Lookup("swaggerignore")
 		if ok && strings.EqualFold(skip, "true") {
@@ -1651,7 +1662,7 @@ func (parser *Parser) parseStructField(file *ast.File, field *ast.Field) (map[st
 			return nil, nil, err
 		}
 
-		schema, err := parser.getTypeSchema(typeName, file, false)
+		schema, err := parser.getTypeSchema(typeName, file, false, forAsyncAPI)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1682,10 +1693,10 @@ func (parser *Parser) parseStructField(file *ast.File, field *ast.Field) (map[st
 		typeName, err := getFieldType(file, field.Type, nil)
 		if err == nil {
 			// named type
-			schema, err = parser.getTypeSchema(typeName, file, true)
+			schema, err = parser.getTypeSchema(typeName, file, true, forAsyncAPI)
 		} else {
 			// unnamed type
-			schema, err = parser.parseTypeExpr(file, field.Type, false)
+			schema, err = parser.parseTypeExpr(file, field.Type, false, forAsyncAPI)
 		}
 
 		if err != nil {
@@ -2023,6 +2034,10 @@ func (parser *Parser) GetSwagger() *spec.Swagger {
 
 func (parser *Parser) GetAsyncAPI() *asyncSpec.AsyncAPI {
 	return parser.asyncAPI
+}
+
+func (parser *Parser) GetParsedSchemas() map[*TypeSpecDef]*Schema {
+	return parser.parsedSchemas
 }
 
 // addTestType just for tests.

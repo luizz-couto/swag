@@ -140,7 +140,7 @@ func (asyncScope *AsyncScope) ParseOperationComment(commentLine string, astFile 
 	channel := matches[3]
 	message := matches[4]
 
-	typeSchema, err := asyncScope.parser.getTypeSchema(message, astFile, false)
+	typeSchema, err := asyncScope.parser.getTypeSchema(message, astFile, false, true)
 	if err != nil {
 		log.Printf("ERROR in type schema: %v", err)
 		return err

@@ -230,18 +230,8 @@ func (g *Gen) Build(config *Config) error {
 		return err
 	}
 
-	for _, outputType := range config.OutputTypes {
-		outputType = strings.ToLower(strings.TrimSpace(outputType))
-		if typeWriter, ok := g.outputTypeMap[outputType]; ok {
-			if err := typeWriter(config, swagger); err != nil {
-				return err
-			}
-		} else {
-			log.Printf("output type '%s' not supported", outputType)
-		}
-	}
-
 	asyncAPI := p.GetAsyncAPI()
+
 	if len(asyncAPI.Servers) > 0 || len(asyncAPI.Channels) > 0 {
 		asyncAPI.Info.Title = swagger.Info.Title
 		asyncAPI.Info.Description = swagger.Info.Description
@@ -256,34 +246,41 @@ func (g *Gen) Build(config *Config) error {
 		}
 
 		for definitionKey, definition := range swagger.Definitions {
-			
-			log.Printf("SCHEMA KEY: %v", definitionKey)
-			log.Printf("SCHEMA TYPE: %v", definition.Type)
-			
-			schema := map[string]interface{}{
-				"type": definition.Type[0],
-			}
+			schemaInParsed, _ := findSchemaInParsedSchemas(p, definitionKey)
+			if schemaInParsed.UsedForAsyncAPI {
+				log.Printf("SCHEMA KEY: %v", definitionKey)
+				log.Printf("SCHEMA TYPE: %v", definition.Type)
 				
-			if (definition.Type[0] == swag.OBJECT) {
-				jsonMarshal, err := definition.Properties.MarshalJSON()
-				if err != nil {
-					log.Printf("ERROR in Marshal: %v", err)
-					return err
+				schema := map[string]interface{}{
+					"type": definition.Type[0],
+				}
+					
+				if (definition.Type[0] == swag.OBJECT) {
+					jsonMarshal, err := definition.Properties.MarshalJSON()
+					if err != nil {
+						log.Printf("ERROR in Marshal: %v", err)
+						return err
+					}
+		
+					jsonMarshal, _ = replaceStringInJSON(jsonMarshal, "#/definitions/", "#/components/schemas/")
+		
+					mapOfProperties := map[string]interface{}{}
+					err = json.Unmarshal(jsonMarshal, &mapOfProperties)
+					if err != nil {
+						log.Printf("ERROR in Unmarshal: %v", err)
+						return err
+					}
+	
+					schema["properties"] = mapOfProperties
 				}
 	
-				jsonMarshal, _ = replaceStringInJSON(jsonMarshal, "#/definitions/", "#/components/schemas/")
-	
-				mapOfProperties := map[string]interface{}{}
-				err = json.Unmarshal(jsonMarshal, &mapOfProperties)
-				if err != nil {
-					log.Printf("ERROR in Unmarshal: %v", err)
-					return err
-				}
-
-				schema["properties"] = mapOfProperties
+				asyncAPI.Components.Schemas[definitionKey] = schema
 			}
 
-			asyncAPI.Components.Schemas[definitionKey] = schema
+			if !schemaInParsed.UsedForOpenAPI {
+				delete(swagger.Definitions, definitionKey)
+			}
+
 		}
 
 		if err := writeDocAsyncAPI(asyncAPI, "asyncapinew.yml"); err != nil {
@@ -291,7 +288,28 @@ func (g *Gen) Build(config *Config) error {
 		}
 	}
 
+	for _, outputType := range config.OutputTypes {
+		outputType = strings.ToLower(strings.TrimSpace(outputType))
+		if typeWriter, ok := g.outputTypeMap[outputType]; ok {
+			if err := typeWriter(config, swagger); err != nil {
+				return err
+			}
+		} else {
+			log.Printf("output type '%s' not supported", outputType)
+		}
+	}
+
 	return nil
+}
+
+func findSchemaInParsedSchemas(parser *swag.Parser, schemaName string) (*swag.Schema, error) {
+	parsedSchemas := parser.GetParsedSchemas()
+	for _, schema := range parsedSchemas {
+		if schema.Name == schemaName {
+			return schema, nil
+		}
+	}
+	return nil, fmt.Errorf("unable to find schema for '%s'", schemaName)
 }
 
 func replaceStringInJSON(originalJSON []byte, oldValue, newValue string) ([]byte, error) {
