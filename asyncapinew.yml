@@ -45,7 +45,7 @@ channels:
     servers:
     - kafka
     subscribe:
-      operationId: onTemplateUpdate
+      operationId: UpdateTemplate
       message:
         payload:
           properties:

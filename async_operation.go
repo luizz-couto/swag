@@ -49,7 +49,7 @@ func NewAsyncScope(parser *Parser) *AsyncScope {
 	return asyncOperation
 }
 
-func (asyncScope *AsyncScope) ParseAsyncAPIComment(comment string, astFile *ast.File) error {
+func (asyncScope *AsyncScope) ParseAsyncAPIComment(funcName *string, comment string, astFile *ast.File) error {
 	commentLine := strings.TrimSpace(strings.TrimLeft(comment, "/"))
 	if len(commentLine) == 0 {
 		return nil
@@ -76,7 +76,7 @@ func (asyncScope *AsyncScope) ParseAsyncAPIComment(comment string, astFile *ast.
 		asyncScope.ParseChannelComment(lineRemainder)
 
 	case operationAttr:
-		asyncScope.ParseOperationComment(lineRemainder, astFile)
+		asyncScope.ParseOperationComment(funcName, lineRemainder, astFile)
 	}
 	return nil
 }
@@ -126,19 +126,31 @@ func (asyncScope *AsyncScope) ParseChannelComment(commentLine string) error {
 	return nil
 }
 
-var operationCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+(\S+)\s+(.+)`)
+var operationCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+(\S+)\s*(.*)?`)
 
 // @operation {id} {type} {channel} {message}
-func (asyncScope *AsyncScope) ParseOperationComment(commentLine string, astFile *ast.File) error {
+// @operation {type} {channel} {message}
+func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLine string, astFile *ast.File) error {
 	matches := operationCommentPattern.FindStringSubmatch(commentLine)
 	if len(matches) < 5 {
 		return fmt.Errorf("missing required param comment parameters \"%s\"", commentLine)
 	}
 
-	operationID := matches[1]
-	operationKind := matches[2]
-	channel := matches[3]
-	message := matches[4]
+	operationID := ""
+	argsStartIndex := 1
+	if matches[4] == "" {
+		if funcName == nil {
+			return fmt.Errorf("unable to get operation ID for commentLine '%s'", commentLine)
+		}
+		operationID = *funcName
+	} else {
+		operationID = matches[1]
+		argsStartIndex = 2
+	}
+
+	operationKind := matches[argsStartIndex]
+	channel := matches[argsStartIndex + 1]
+	message := matches[argsStartIndex + 2]
 
 	typeSchema, err := asyncScope.parser.getTypeSchema(message, astFile, false, true)
 	if err != nil {

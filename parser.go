@@ -1085,6 +1085,15 @@ func getFuncDoc(decl any) (*ast.CommentGroup, bool) {
 	return nil, false
 }
 
+func getFuncName(decl any) *string {
+	switch astDecl := decl.(type) {
+	case *ast.FuncDecl: // func name() {}
+		return &astDecl.Name.Name
+	default:
+		return nil
+	}
+}
+
 // ParseRouterAPIInfo parses router api info for given astFile.
 func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 	if (fileInfo.ParseFlag & ParseOperations) == ParseNone {
@@ -1095,7 +1104,7 @@ func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 	if parser.ParseFuncBody {
 		for _, astComments := range fileInfo.File.Comments {
 			if astComments.List != nil {
-				if err := parser.parseFunctionInfoComment(astComments.List, fileInfo); err != nil {
+				if err := parser.parseFunctionInfoComment(nil, astComments.List, fileInfo); err != nil {
 					return err
 				}
 			}
@@ -1107,7 +1116,8 @@ func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 	for _, decl := range fileInfo.File.Decls {
 		funcDoc, ok := getFuncDoc(decl)
 		if ok && funcDoc != nil && funcDoc.List != nil {
-			if err := parser.parseFunctionInfoComment(funcDoc.List, fileInfo); err != nil {
+			funcName := getFuncName(decl)
+			if err := parser.parseFunctionInfoComment(funcName, funcDoc.List, fileInfo); err != nil {
 				return err
 			}
 		}
@@ -1116,14 +1126,14 @@ func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 	return nil
 }
 
-func (parser *Parser) parseFunctionInfoComment(comments []*ast.Comment, fileInfo *AstFileInfo) error {
+func (parser *Parser) parseFunctionInfoComment(funcName *string, comments []*ast.Comment, fileInfo *AstFileInfo) error {
 	if parser.matchTags(comments) && matchExtension(parser.parseExtension, comments) {
 		// for per 'function' comment, create a new 'Operation' object
 		if len(comments) > 0 && strings.ToLower(comments[0].Text) == "// @asyncapi" {
 			asyncAPIScope := NewAsyncScope(parser)
 			for _, comment := range comments {
 				log.Printf("Parsing comment: %v", comment.Text)
-				err := asyncAPIScope.ParseAsyncAPIComment(comment.Text, fileInfo.File)
+				err := asyncAPIScope.ParseAsyncAPIComment(funcName, comment.Text, fileInfo.File)
 				if err != nil {
 					return fmt.Errorf("ParseAsyncAPIComment error in file %s for comment: '%s': %+v", fileInfo.Path, comment.Text, err)
 				}
