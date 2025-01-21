@@ -1,0 +1,1958 @@
+basePath: /
+definitions:
+  bot.BotDAO:
+    properties:
+      botID:
+        type: string
+      createdAt:
+        type: string
+      customerId:
+        type: string
+      id:
+        type: string
+      integrationsKey:
+        type: string
+      returnChatToBot:
+        type: boolean
+      salesdeskAccountID:
+        type: string
+      updatedAt:
+        type: string
+      webhookMetadata:
+        $ref: '#/definitions/bot.WebhookMetadata'
+      workflowEndpoint:
+        type: string
+    type: object
+  bot.BotDTO:
+    properties:
+      botID:
+        type: string
+      createdAt:
+        type: string
+      customerId:
+        type: string
+      customerName:
+        type: string
+      id:
+        type: string
+      integrationsKey:
+        type: string
+      returnChatToBot:
+        type: boolean
+      salesdeskAccountID:
+        type: string
+      updatedAt:
+        type: string
+      webhookMetadata:
+        $ref: '#/definitions/bot.WebhookMetadata'
+      workflowEndpoint:
+        type: string
+    type: object
+  bot.InsertBotDTO:
+    properties:
+      botId:
+        type: string
+      returnChatToBot:
+        type: boolean
+      salesdeskAccountId:
+        type: string
+      webhookMetadata:
+        $ref: '#/definitions/bot.WebhookMetadata'
+      workflowEndpoint:
+        type: string
+    required:
+      - botId
+      - salesdeskAccountId
+    type: object
+  bot.UpdateBotWebhookResponse:
+    properties:
+      webhook:
+        type: string
+    type: object
+  bot.WebhookMetadata:
+    properties:
+      chatBacklogInHours:
+        type: integer
+      messagesPerRequest:
+        type: integer
+      phone:
+        type: string
+      webhook:
+        type: string
+    type: object
+  businesshour.Response:
+    properties:
+      id:
+        type: string
+    type: object
+  conversation.ConversationsResponse:
+    properties:
+      data:
+        $ref: '#/definitions/conversation.ConversationsResult'
+      errors:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      success:
+        type: boolean
+    type: object
+  conversation.ConversationsResult:
+    properties:
+      conversations:
+        additionalProperties:
+          items:
+            $ref: '#/definitions/conversation.Message'
+          type: array
+        type: object
+      total:
+        type: integer
+    type: object
+  conversation.Message:
+    properties:
+      author:
+        type: string
+      date:
+        type: string
+      m_type:
+        type: string
+      reader:
+        type: string
+      text:
+        type: string
+    type: object
+  conversation.RecentNumbersResponse:
+    properties:
+      data:
+        items:
+          type: string
+        type: array
+      errors:
+        additionalProperties: {}
+        type: object
+      success:
+        type: boolean
+    type: object
+  models.BusinessHour:
+    properties:
+      departmentIds:
+        items:
+          type: string
+        type: array
+      disabledAt:
+        type: string
+      enabledAt:
+        type: string
+      id:
+        type: string
+      instanceId:
+        type: string
+      isOpen:
+        type: boolean
+      name:
+        type: string
+      timezone:
+        type: string
+      workHours:
+        items:
+          $ref: '#/definitions/models.WorkHour'
+        type: array
+    type: object
+  models.CloseChatRequestDTO:
+    properties:
+      botId:
+        type: string
+      closeInWorkflow:
+        type: boolean
+      comment:
+        type: string
+      phone:
+        type: string
+      roomId:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+    required:
+      - botId
+      - phone
+      - roomId
+    type: object
+  models.CreateBusinessHourRequestDTO:
+    properties:
+      departmentIds:
+        items:
+          type: string
+        type: array
+      instanceId:
+        type: string
+      name:
+        type: string
+      timezone:
+        type: string
+      workHours:
+        items:
+          $ref: '#/definitions/models.WorkHour'
+        type: array
+    required:
+      - departmentIds
+      - instanceId
+      - name
+      - timezone
+      - workHours
+    type: object
+  models.CreateUserRequestDTO:
+    properties:
+      bio:
+        type: string
+      customFields:
+        additionalProperties: true
+        type: object
+      email:
+        type: string
+      joinDefaultChannels:
+        type: boolean
+      name:
+        type: string
+      nickname:
+        type: string
+      password:
+        type: string
+      requirePasswordChange:
+        type: boolean
+      roles:
+        items:
+          type: string
+        type: array
+      sendWelcomeEmail:
+        type: boolean
+      setRandomPassword:
+        type: boolean
+      statusText:
+        type: string
+      username:
+        type: string
+      verified:
+        type: boolean
+    required:
+      - email
+      - name
+      - password
+      - username
+    type: object
+  models.CreateUserResponseDTO:
+    properties:
+      details:
+        additionalProperties: true
+        type: object
+      error:
+        type: string
+      errorType:
+        type: string
+      success:
+        type: boolean
+      user:
+        additionalProperties: true
+        type: object
+    type: object
+  models.LoginRequestDTO:
+    properties:
+      password:
+        type: string
+      user:
+        type: string
+    required:
+      - password
+      - user
+    type: object
+  models.LoginResponseDTO:
+    properties:
+      data:
+        additionalProperties: true
+        type: object
+      error:
+        type: string
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  models.NamedError:
+    properties:
+      name:
+        type: string
+      reason:
+        type: string
+    type: object
+  models.NotificationData:
+    properties:
+      agentID:
+        type: string
+      contactID:
+        type: string
+      params:
+        additionalProperties: true
+        type: object
+      teamID:
+        type: string
+      templateID:
+        type: string
+    required:
+      - agentID
+      - contactID
+      - teamID
+      - templateID
+    type: object
+  models.NotificationReply:
+    properties:
+      contactID:
+        type: string
+      templateID:
+        type: string
+      userSessionId:
+        type: string
+      webhookUrl:
+        type: string
+    required:
+      - contactID
+      - templateID
+      - userSessionId
+    type: object
+  models.OutgoingMessage:
+    properties:
+      chat:
+        $ref: '#/definitions/outgoingMessage.ChatMessage'
+      id:
+        type: string
+      kind:
+        $ref: '#/definitions/outgoingMessage.MessageContext'
+      response:
+        $ref: '#/definitions/outgoingMessage.ResponseMessage'
+      status:
+        $ref: '#/definitions/outgoingMessage.StatusMessage'
+    required:
+      - kind
+    type: object
+  models.ResetUserPasswordRequestDTO:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+    required:
+      - password
+      - token
+    type: object
+  models.ResetUserPasswordResponse:
+    properties:
+      error:
+        type: string
+      errorType:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.RocketChatDepartment:
+    properties:
+      _id:
+        type: string
+      _updatedAt:
+        type: string
+      description:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      numAgents:
+        type: integer
+      showOnRegistration:
+        type: boolean
+    type: object
+  models.SaveUserProfileRequestDTO:
+    properties:
+      bio:
+        type: string
+      newPassword:
+        type: string
+      nickname:
+        type: string
+      realname:
+        type: string
+      statusText:
+        type: string
+      statusType:
+        type: string
+      username:
+        type: string
+    type: object
+  models.SaveUserProfileResponseDTO:
+    properties:
+      error:
+        type: string
+      errorType:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.TemplateData:
+    properties:
+      isActiveSalesdesk:
+        type: boolean
+      sharedWith:
+        items:
+          type: string
+        type: array
+    type: object
+  models.TransferChatRequestDTO:
+    properties:
+      botId:
+        type: string
+      departmentName:
+        type: string
+      userSessionId:
+        type: string
+      username:
+        type: string
+      webhookUrl:
+        type: string
+    required:
+      - botId
+      - departmentName
+      - userSessionId
+      - username
+    type: object
+  models.TransferChatRequestDTOv2:
+    properties:
+      botId:
+        type: string
+      departmentName:
+        type: string
+      name:
+        type: string
+      userSessionId:
+        type: string
+      username:
+        type: string
+      webhookUrl:
+        type: string
+    required:
+      - botId
+      - departmentName
+      - name
+      - userSessionId
+      - username
+    type: object
+  models.TransferChatResponseDTO:
+    properties:
+      customFields:
+        additionalProperties:
+          type: string
+        type: object
+      roomId:
+        type: string
+    type: object
+  models.UpdateBusinessHourRequestDTO:
+    properties:
+      departmentIds:
+        items:
+          type: string
+        type: array
+      timezone:
+        type: string
+      workHours:
+        items:
+          $ref: '#/definitions/models.WorkHourNonRequired'
+        type: array
+    type: object
+  models.UpdateUserInfoRequestDTO:
+    properties:
+      data:
+        $ref: '#/definitions/models.UserInfo'
+      userId:
+        type: string
+    type: object
+  models.UpdateUserInfoResponseDTO:
+    properties:
+      details:
+        additionalProperties: true
+        type: object
+      error:
+        type: string
+      errorType:
+        type: string
+      success:
+        type: boolean
+      user:
+        additionalProperties: true
+        type: object
+    type: object
+  models.UpdateUserPasswordRequestDTO:
+    properties:
+      password:
+        type: string
+    required:
+      - password
+    type: object
+  models.UpdateUserPasswordResponseDTO:
+    properties:
+      error:
+        type: string
+      errorType:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.UserInfo:
+    properties:
+      active:
+        type: boolean
+      customFields:
+        additionalProperties: true
+        type: object
+      email:
+        type: string
+      joinDefaultChannels:
+        type: boolean
+      name:
+        type: string
+      password:
+        type: string
+      requirePasswordChange:
+        type: boolean
+      roles:
+        items:
+          type: string
+        type: array
+      sendWelcomeEmail:
+        type: boolean
+      username:
+        type: string
+      verified:
+        type: boolean
+    type: object
+  models.WorkHour:
+    properties:
+      closes:
+        type: string
+      dayOfWeek:
+        enum:
+          - sunday
+          - monday
+          - tuesday
+          - wednesday
+          - thursday
+          - friday
+          - saturday
+        type: string
+      opens:
+        type: string
+    required:
+      - closes
+      - dayOfWeek
+      - opens
+    type: object
+  models.WorkHourNonRequired:
+    properties:
+      closes:
+        type: string
+      dayOfWeek:
+        enum:
+          - sunday
+          - monday
+          - tuesday
+          - wednesday
+          - thursday
+          - friday
+          - saturday
+        type: string
+      opens:
+        type: string
+    type: object
+  notification.NotificationDetailedFieldsDAO:
+    properties:
+      agent:
+        items:
+          type: integer
+        type: array
+      contact:
+        items:
+          type: integer
+        type: array
+      createdAt:
+        type: string
+      id:
+        type: string
+      template:
+        items:
+          type: integer
+        type: array
+    type: object
+  notification.NotificationPaginatedDTO:
+    properties:
+      count:
+        type: integer
+      notifications:
+        items:
+          $ref: '#/definitions/notification.NotificationDetailedFieldsDAO'
+        type: array
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  outgoingMessage.AgentTransferStatus:
+    properties:
+      transferedBy:
+        $ref: '#/definitions/outgoingMessage.TransferUser'
+      transferedTo:
+        $ref: '#/definitions/outgoingMessage.TransferToInfo'
+    required:
+      - transferedBy
+      - transferedTo
+    type: object
+  outgoingMessage.AudioMessage:
+    properties:
+      mimeType:
+        type: string
+      url:
+        type: string
+    required:
+      - url
+    type: object
+  outgoingMessage.ChatMessage:
+    properties:
+      audio:
+        $ref: '#/definitions/outgoingMessage.AudioMessage'
+      authorRole:
+        type: string
+      departmentId:
+        type: string
+      document:
+        $ref: '#/definitions/outgoingMessage.MediaWithCaption'
+      id:
+        type: string
+      image:
+        $ref: '#/definitions/outgoingMessage.MediaWithCaption'
+      interactive:
+        $ref: '#/definitions/outgoingMessage.InteractiveMessage'
+      kind:
+        $ref: '#/definitions/outgoingMessage.ChatMessageKind'
+      location:
+        $ref: '#/definitions/outgoingMessage.LocationMessage'
+      messageRef:
+        type: string
+      name:
+        type: string
+      roomId:
+        type: string
+      status:
+        type: string
+      text:
+        $ref: '#/definitions/outgoingMessage.TextMessage'
+      timestamp:
+        type: string
+      username:
+        type: string
+      video:
+        $ref: '#/definitions/outgoingMessage.MediaWithCaption'
+    required:
+      - authorRole
+      - departmentId
+      - id
+      - kind
+      - roomId
+      - timestamp
+      - username
+    type: object
+  outgoingMessage.ChatMessageKind:
+    enum:
+      - text
+      - audio
+      - image
+      - video
+      - document
+      - interactive
+      - location
+    type: string
+    x-enum-varnames:
+      - Text
+      - Audio
+      - Image
+      - Video
+      - Document
+      - Interactive
+      - Location
+  outgoingMessage.DepartmentInfo:
+    properties:
+      Id:
+        type: string
+      name:
+        type: string
+    required:
+      - Id
+      - name
+    type: object
+  outgoingMessage.DepartmentTransferStatus:
+    properties:
+      nextDepartment:
+        $ref: '#/definitions/outgoingMessage.DepartmentInfo'
+      previousDepartment:
+        $ref: '#/definitions/outgoingMessage.DepartmentInfo'
+      transferedBy:
+        $ref: '#/definitions/outgoingMessage.TransferUser'
+    required:
+      - nextDepartment
+      - previousDepartment
+      - transferedBy
+    type: object
+  outgoingMessage.InteractiveButton:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/outgoingMessage.InteractiveOption'
+        type: array
+      body:
+        type: string
+    required:
+      - actions
+      - body
+    type: object
+  outgoingMessage.InteractiveList:
+    properties:
+      body:
+        type: string
+      sections:
+        items:
+          $ref: '#/definitions/outgoingMessage.InteractiveListSection'
+        type: array
+    required:
+      - body
+      - sections
+    type: object
+  outgoingMessage.InteractiveListRow:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+    required:
+      - description
+      - id
+      - title
+    type: object
+  outgoingMessage.InteractiveListSection:
+    properties:
+      id:
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/outgoingMessage.InteractiveListRow'
+        type: array
+      title:
+        type: string
+    required:
+      - id
+      - options
+      - title
+    type: object
+  outgoingMessage.InteractiveMessage:
+    properties:
+      button:
+        $ref: '#/definitions/outgoingMessage.InteractiveButton'
+      kind:
+        $ref: '#/definitions/outgoingMessage.InteractiveMessageKind'
+      list:
+        $ref: '#/definitions/outgoingMessage.InteractiveList'
+      userReply:
+        $ref: '#/definitions/outgoingMessage.InteractiveOption'
+    required:
+      - kind
+    type: object
+  outgoingMessage.InteractiveMessageKind:
+    enum:
+      - button
+      - list
+      - userReply
+    type: string
+    x-enum-varnames:
+      - InteractiveButtonKind
+      - InteractiveListKind
+      - InteractiveUserReplyKind
+  outgoingMessage.InteractiveOption:
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+    required:
+      - id
+      - title
+    type: object
+  outgoingMessage.LocationMessage:
+    properties:
+      latitude:
+        type: string
+      longitude:
+        type: string
+    required:
+      - latitude
+      - longitude
+    type: object
+  outgoingMessage.MediaWithCaption:
+    properties:
+      caption:
+        type: string
+      mimeType:
+        type: string
+      url:
+        type: string
+    required:
+      - url
+    type: object
+  outgoingMessage.MessageContext:
+    enum:
+      - chat
+      - status
+      - response
+    type: string
+    x-enum-varnames:
+      - Chat
+      - Status
+      - Response
+  outgoingMessage.QueueTransferStatus:
+    properties:
+      previousDepartment:
+        $ref: '#/definitions/outgoingMessage.DepartmentInfo'
+      transferedBy:
+        $ref: '#/definitions/outgoingMessage.TransferUser'
+    required:
+      - previousDepartment
+      - transferedBy
+    type: object
+  outgoingMessage.ResponseMessage:
+    properties:
+      messageRef:
+        type: string
+      reason:
+        type: string
+      status:
+        $ref: '#/definitions/outgoingMessage.ResponseStatus'
+    type: object
+  outgoingMessage.ResponseStatus:
+    enum:
+      - failed
+      - sent
+      - delivered
+      - read
+    type: string
+    x-enum-varnames:
+      - ResponseStatusFailed
+      - ResponseStatusSent
+      - ResponseStatusDelivered
+      - ResponseStatusRead
+  outgoingMessage.StatusMessage:
+    properties:
+      agent-transfer:
+        $ref: '#/definitions/outgoingMessage.AgentTransferStatus'
+      authorName:
+        type: string
+      authorUsername:
+        type: string
+      department-transfer:
+        $ref: '#/definitions/outgoingMessage.DepartmentTransferStatus'
+      id:
+        type: string
+      kind:
+        $ref: '#/definitions/outgoingMessage.StatusMessageKind'
+      message:
+        type: string
+      queue-transfer:
+        $ref: '#/definitions/outgoingMessage.QueueTransferStatus'
+      roomId:
+        type: string
+      timestamp:
+        type: string
+    required:
+      - authorName
+      - authorUsername
+      - id
+      - kind
+      - message
+      - roomId
+      - timestamp
+    type: object
+  outgoingMessage.StatusMessageKind:
+    enum:
+      - chat-started
+      - chat-closed
+      - chat-on-hold
+      - chat-resumed
+      - department-transfer
+      - agent-transfer
+      - queue-transfer
+    type: string
+    x-enum-varnames:
+      - ChatStarted
+      - ChatClosed
+      - ChatOnHold
+      - ChatResumed
+      - DepartmentTransfer
+      - AgentTransfer
+      - QueueTransfer
+  outgoingMessage.TextMessage:
+    properties:
+      body:
+        type: string
+    required:
+      - body
+    type: object
+  outgoingMessage.TransferToInfo:
+    properties:
+      id:
+        type: string
+      username:
+        type: string
+    required:
+      - id
+      - username
+    type: object
+  outgoingMessage.TransferUser:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+      username:
+        type: string
+    required:
+      - id
+      - name
+      - type
+      - username
+    type: object
+  template.SyncTemplatesErrorResponse:
+    properties:
+      errors:
+        items:
+          $ref: '#/definitions/models.NamedError'
+        type: array
+      success:
+        type: boolean
+    type: object
+  template.TemplateDAO:
+    properties:
+      bodyText:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      isActive:
+        type: boolean
+      isActiveSalesdesk:
+        type: boolean
+      name:
+        type: string
+      sharedWith:
+        items:
+          type: integer
+        type: array
+      status:
+        type: string
+      subscriptionID:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  template.TemplatePaginatedDTO:
+    properties:
+      count:
+        type: integer
+      offset:
+        type: integer
+      templates:
+        items:
+          $ref: '#/definitions/template.TemplateDAO'
+        type: array
+      total:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is the Salesdesk API
+  title: Salesdesk API
+  version: "1.1.17"
+paths:
+  /v1/bot:
+    get:
+      description: Returns bot info for the given Instance (AccountID)
+      operationId: getBotByInstance
+      parameters:
+        - description: Instance (AccountID)
+          in: query
+          name: instance
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bot.BotDTO'
+        "404":
+          description: No Bot Found for given Instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Bot
+    post:
+      description: Add new bot to salesdesk
+      operationId: addNewBot
+      parameters:
+        - description: New bot values
+          in: body
+          name: InsertBotRequest
+          required: true
+          schema:
+            $ref: '#/definitions/bot.InsertBotDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Missing or Invalid body Inputs
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Bot
+  /v1/bot/{botId}:
+    delete:
+      description: Removes bot from integrations webhook
+      operationId: deleteBotById
+      parameters:
+        - description: Bot ID
+          in: path
+          name: botId
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "404":
+          description: Bot not found for given BotID
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Bot
+    get:
+      description: Returns bot info for the given BotID
+      operationId: getBotById
+      parameters:
+        - description: Bot ID
+          in: path
+          name: botId
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bot.BotDTO'
+        "404":
+          description: No Bot Found for given BotID
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Bot
+  /v1/bot/{botId}/webhook:
+    post:
+      description: Update Bot Webhook data
+      operationId: updateBotWebhook
+      parameters:
+        - description: Bot ID
+          in: path
+          name: botId
+          required: true
+          type: string
+        - description: New webhook data values
+          in: body
+          name: UpdateBotWebhookRequest
+          required: true
+          schema:
+            $ref: '#/definitions/bot.WebhookMetadata'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bot.UpdateBotWebhookResponse'
+        "400":
+          description: Missing or Invalid path/body Inputs
+          schema:
+            type: string
+        "401":
+          description: Missing authorization token in header
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Bot
+  /v1/bot/all:
+    get:
+      description: Returns all bots info
+      operationId: getAllBots
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bot.BotDAO'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Bot
+  /v1/business-hour:
+    patch:
+      description: Updates an existing schedule
+      operationId: UpdateBusinessHours
+      parameters:
+        - description: parameters
+          in: body
+          name: newScheduleData
+          required: true
+          schema:
+            $ref: '#/definitions/models.UpdateBusinessHourRequestDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/businesshour.Response'
+        "400":
+          description: 'ERROR - the Body data has invalid fields: %s'
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Schedule
+    post:
+      description: Creates a new schedule
+      operationId: CreateBusinessHour
+      parameters:
+        - description: parameters
+          in: body
+          name: newScheduleData
+          required: true
+          schema:
+            $ref: '#/definitions/models.CreateBusinessHourRequestDTO'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/businesshour.Response'
+        "400":
+          description: 'The Body data has invalid fields: %s'
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Schedule
+  /v1/business-hour/:
+    get:
+      description: Gets a schedule by name or id
+      operationId: GetBusinessHoursByNameOrId
+      parameters:
+        - description: Name
+          in: query
+          name: name
+          type: string
+        - description: Id
+          in: query
+          name: id
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BusinessHour'
+        "400":
+          description: ERROR - cannot use both name and id query params at the same time
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Schedule
+  /v1/business-hour/:instanceId:
+    get:
+      description: Gets All schedules by instance id
+      operationId: GetAllBusinessHours
+      parameters:
+        - description: Instance Id
+          in: path
+          name: instanceId
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.BusinessHour'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Schedule
+  /v1/businessHour/:id:
+    delete:
+      description: Soft deletes a schedule
+      operationId: DeleteBusinessHour
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: ERROR - deletedBy query param is required
+          schema:
+            type: string
+        "404":
+          description: 'ERROR - schedule not found with id: '
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Schedule
+  /v1/businessHour/change-status/:id:
+    patch:
+      description: Changes the status (enabled or disabled) of the schedule
+      operationId: ChangeStatusBusinessHour
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/businesshour.Response'
+        "400":
+          description: ERROR - enabled query param should be true or false
+          schema:
+            type: string
+        "500":
+          description: 'ERROR - '
+          schema:
+            type: string
+      tags:
+        - Schedule
+  /v1/chat/close:
+    post:
+      description: Closes Ongoing Chat
+      operationId: closeChat
+      parameters:
+        - description: Close chat body params
+          in: body
+          name: CloseChatRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.CloseChatRequestDTO'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Missing or Invalid body Inputs
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Chat
+  /v1/chat/history:
+    get:
+      description: Get  chat history messages
+      operationId: getChatHistory
+      parameters:
+        - description: Chat room ID
+          in: query
+          name: roomId
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.OutgoingMessage'
+            type: array
+        "400":
+          description: Missing room ID input
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Chat
+  /v1/chat/transfer:
+    post:
+      description: Opens a new chat in salesdesk
+      operationId: transferChat
+      parameters:
+        - description: Transfer Chat body parameters
+          in: body
+          name: TransferChatRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.TransferChatRequestDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TransferChatResponseDTO'
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Chat
+  /v1/chat/transfer/open:
+    post:
+      description: Transfer a chat to another department/agent in salesdesk
+      operationId: transferOpenChat
+      parameters:
+        - description: Transfer Chat body parameters
+          in: body
+          name: TransferOpenChatRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.TransferChatRequestDTO'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Chat
+  /v1/contact/{contactId}/notification:
+    get:
+      description: Returns a list of notifications sent for a given contact ID
+      operationId: getContactNotifications
+      parameters:
+        - description: Contact ID
+          in: path
+          name: contactId
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notification.NotificationPaginatedDTO'
+        "400":
+          description: Missing contactId input
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Contact
+  /v1/contact/{contactId}/notification/latest:
+    get:
+      description: Return the last notification of a contact
+      operationId: getLastNotification
+      parameters:
+        - description: Contact ID
+          in: path
+          name: contactId
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notification.NotificationDetailedFieldsDAO'
+        "400":
+          description: Unable to get last Notification of contactId
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Contact
+  /v1/conversation/{instance}/{phone}:
+    get:
+      description: Get conversation by instance and phone
+      operationId: getConversationByInstanceAndPhone
+      parameters:
+        - description: Instance
+          in: path
+          name: instance
+          required: true
+          type: string
+        - description: Phone
+          in: path
+          name: phone
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/conversation.ConversationsResponse'
+        "400":
+          description: Missing params (fromDate, toDate, timezone) are required
+          schema:
+            type: string
+        "404":
+          description: No bots found for instance provided
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Conversation
+  /v1/conversation/recent-numbers/{instance}:
+    get:
+      description: Get recent numbers by instance
+      operationId: getRecentNumbersByInstance
+      parameters:
+        - description: Instance
+          in: path
+          name: instance
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/conversation.RecentNumbersResponse'
+        "404":
+          description: No bots found for instance provided
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Conversation
+  /v1/department:
+    get:
+      description: Get  the list of all the Departments from a Rocketchat instance
+      operationId: getDepartments
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.RocketChatDepartment'
+            type: array
+        "401":
+          description: You must be logged in to do this
+          schema:
+            type: string
+        "500":
+          description: 'Unable to read body of Get Departments for Instance: '
+          schema:
+            type: string
+      tags:
+        - department
+  /v1/notification:
+    get:
+      description: Returns a list of notifications sent for a given account and templates that matches a search string
+      operationId: getNotifications
+      parameters:
+        - description: Account ID
+          in: query
+          name: accountId
+          required: true
+          type: string
+        - description: Template IDs, separated by comma
+          in: query
+          name: templateIds
+          type: string
+        - description: Search term
+          in: query
+          name: search
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notification.NotificationPaginatedDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Notification
+    post:
+      description: Sends a notification
+      operationId: sendNotification
+      parameters:
+        - description: Send Notification body params
+          in: body
+          name: SendNotificationRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.NotificationData'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Notification
+  /v1/notification/transfer/reply:
+    post:
+      description: Transfer notification to team and agent after reply from customer
+      operationId: transferAfterReply
+      parameters:
+        - description: Transfer reply body params
+          in: body
+          name: TransferReplyRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.NotificationReply'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TransferChatResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Notification
+  /v1/sync:
+    get:
+      description: Sync the Salesdesk template data with the data from engagement. It will get all botIds in our DB and update out of sync templates in Engagement for that given BotIds
+      operationId: syncTemplates
+      responses:
+        "200":
+          description: Synchronization completed successfully
+          schema:
+            type: string
+      tags:
+        - Template
+  /v1/template:
+    get:
+      description: Returns a list of templates for a given account and departments that matches a search string
+      operationId: getTemplates
+      parameters:
+        - description: Account ID
+          in: query
+          name: accountId
+          required: true
+          type: string
+        - description: Departments IDs, separated by comma
+          in: query
+          name: departmentsIds
+          type: string
+        - description: Search term
+          in: query
+          name: search
+          type: string
+        - description: 'Boolean value: whether the templates to be searched are active or not. Deafult false'
+          in: query
+          name: isActiveSalesdesk
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/template.TemplatePaginatedDTO'
+        "400":
+          description: Missing AccountId input
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Template
+  /v1/template/{id}:
+    get:
+      description: Get template by ID
+      operationId: getTemplate
+      parameters:
+        - description: The template ID
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: 'Boolean value: If ''true'' it will return additional information from engagement about this template'
+          in: query
+          name: full
+          required: true
+          type: boolean
+      responses:
+        "200":
+          description: Returned Template
+          schema:
+            type: object
+        "400":
+          description: Unable to get template for given id
+          schema:
+            type: string
+        "404":
+          description: Not Found template for given id
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Template
+    put:
+      description: Update template custom fields
+      operationId: updateTemplate
+      parameters:
+        - description: The template ID
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: Update Template body params
+          in: body
+          name: TemplateUpdateRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.TemplateData'
+      responses:
+        "200":
+          description: Template updated successfully
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Template
+  /v1/user/create:
+    post:
+      description: Create User in Rocket Chat
+      operationId: createUser
+      parameters:
+        - description: Create User body params
+          in: body
+          name: CreateUserRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.CreateUserRequestDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CreateUserResponseDTO'
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - User
+  /v1/user/login:
+    post:
+      description: Login in Rocket Chat
+      operationId: login
+      parameters:
+        - description: Login body params
+          in: body
+          name: LoginRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.LoginRequestDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.LoginResponseDTO'
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - User
+  /v1/user/resetPassword:
+    post:
+      description: Reset User Password in Rocket Chat
+      operationId: resetUserPassword
+      parameters:
+        - description: Reset User Password body params
+          in: body
+          name: ResetUserPasswordRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.ResetUserPasswordRequestDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ResetUserPasswordResponse'
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - User
+  /v1/user/saveProfile:
+    post:
+      description: Save User Profile in Rocket Chat
+      operationId: saveUserProfile
+      parameters:
+        - description: Save User Profile body params
+          in: body
+          name: SaveUserProfileRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.SaveUserProfileRequestDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SaveUserProfileResponseDTO'
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - User
+  /v1/user/updateInfo:
+    post:
+      description: Update User Info in Rocket Chat
+      operationId: updateInfo
+      parameters:
+        - description: Update User Info body params
+          in: body
+          name: UpdateUserInfoRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.UpdateUserInfoRequestDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UpdateUserInfoResponseDTO'
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - User
+  /v1/user/updatePassword:
+    post:
+      description: Update User Password in Rocket Chat
+      operationId: updateUserPassword
+      parameters:
+        - description: Update User Password body params
+          in: body
+          name: UpdateUserPasswordRequest
+          required: true
+          schema:
+            $ref: '#/definitions/models.UpdateUserPasswordRequestDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UpdateUserPasswordResponseDTO'
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - User
+  /v1/utilities/delete-expired-redis-keys:
+    post:
+      description: Deletes all the keys in Redis that have expired
+      operationId: deleteExpiredRedisKeys
+      responses:
+        "200":
+          description: Number of Deletes Keys
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Utilities
+  /v2/bot:
+    get:
+      description: Returns all bots info for the given Instance (AccountID)
+      operationId: getBotsByInstance
+      parameters:
+        - description: Instance (AccountID)
+          in: query
+          name: instance
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bot.BotDAO'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Bot
+  /v2/chat/onHold:
+    get:
+      description: Put chat on hold
+      operationId: putChatOnHold
+      parameters:
+        - description: Chat room ID
+          in: query
+          name: roomId
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.OutgoingMessage'
+            type: array
+        "400":
+          description: Missing or Invalid body Inputs
+          schema:
+            type: string
+        "422":
+          description: Chat closed
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Chat
+  /v2/chat/transfer:
+    post:
+      description: Open new chat in salesdesk, second version
+      operationId: openNewChat
+      parameters:
+        - description: Open new chat body params
+          in: body
+          name: TransferChatRequestV2
+          required: true
+          schema:
+            $ref: '#/definitions/models.TransferChatRequestDTOv2'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TransferChatResponseDTO'
+        "400":
+          description: The Body data has invalid fields
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+        - Chat
+swagger: "2.0"

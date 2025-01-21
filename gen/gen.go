@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/go-openapi/spec"
+	asyncReflector "github.com/swaggest/go-asyncapi/reflector/asyncapi-2.4.0"
+	asyncSpec "github.com/swaggest/go-asyncapi/spec-2.4.0"
 	"github.com/swaggo/swag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -239,6 +241,76 @@ func (g *Gen) Build(config *Config) error {
 		}
 	}
 
+	asyncAPI := p.GetAsyncAPI()
+	if len(asyncAPI.Servers) > 0 || len(asyncAPI.Channels) > 0 {
+		asyncAPI.Info.Title = swagger.Info.Title
+		asyncAPI.Info.Description = swagger.Info.Description
+		asyncAPI.Info.Version = swagger.Info.Version
+
+		reflector := &asyncReflector.Reflector{Schema: asyncAPI}
+		for channelName, channel := range asyncAPI.Channels {
+			reflector.AddChannel(asyncReflector.ChannelInfo{
+				Name: channelName,
+				BaseChannelItem: &channel,
+			})
+		}
+
+		for definitionKey, definition := range swagger.Definitions {
+			
+			log.Printf("SCHEMA KEY: %v", definitionKey)
+			log.Printf("SCHEMA TYPE: %v", definition.Type)
+			
+			schema := map[string]interface{}{
+				"type": definition.Type[0],
+			}
+				
+			if (definition.Type[0] == swag.OBJECT) {
+				jsonMarshal, err := definition.Properties.MarshalJSON()
+				if err != nil {
+					log.Printf("ERROR in Marshal: %v", err)
+					return err
+				}
+	
+				jsonMarshal, _ = replaceStringInJSON(jsonMarshal, "#/definitions/", "#/components/schemas/")
+	
+				mapOfProperties := map[string]interface{}{}
+				err = json.Unmarshal(jsonMarshal, &mapOfProperties)
+				if err != nil {
+					log.Printf("ERROR in Unmarshal: %v", err)
+					return err
+				}
+
+				schema["properties"] = mapOfProperties
+			}
+
+			asyncAPI.Components.Schemas[definitionKey] = schema
+		}
+
+		if err := writeDocAsyncAPI(asyncAPI, "asyncapinew.yml"); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func replaceStringInJSON(originalJSON []byte, oldValue, newValue string) ([]byte, error) {
+	// Replace all occurrences of oldValue with newValue
+	updatedJSON := bytes.ReplaceAll(originalJSON, []byte(oldValue), []byte(newValue))
+	return updatedJSON, nil
+}
+
+// Generate creates the AsyncAPI spec file.
+func writeDocAsyncAPI(asyncAPI *asyncSpec.AsyncAPI, outputFile string) error {
+	yaml, err := asyncAPI.MarshalYAML()
+	if err != nil {
+		return fmt.Errorf("failed to marshal AsyncAPI spec: %w", err)
+	}
+	if err := os.WriteFile(outputFile, yaml, 0644); err != nil {
+		return fmt.Errorf("failed to write AsyncAPI spec file: %w", err)
+	}
+
+	fmt.Printf("AsyncAPI spec written to %s\n", outputFile)
 	return nil
 }
 

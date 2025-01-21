@@ -1,0 +1,307 @@
+asyncapi: 2.4.0
+info:
+  title: Salesdesk API
+  version: "1.0"
+  description: This is the Salesdesk API
+servers:
+  kafka:
+    url: 127.0.0.1:9092
+    protocol: kafka
+channels:
+  EngagementTemplateCreated:
+    description: '{Receive'
+    servers:
+    - kafka
+    subscribe:
+      operationId: onTemplateCreation
+      message:
+        payload:
+          properties:
+            account_id:
+              type: string
+            bot_id:
+              type: string
+            category:
+              type: string
+            creation_date:
+              type: string
+            is_media:
+              type: boolean
+            message_raw:
+              type: string
+            metadata:
+              $ref: '#/components/schemas/common.Metadata'
+            notification_type:
+              type: string
+            obj_id:
+              type: string
+            subscription_type_id:
+              type: string
+            template_id:
+              type: string
+          type: object
+  EngagementTemplateUpdated:
+    description: '{Receive'
+    servers:
+    - kafka
+    subscribe:
+      operationId: onTemplateUpdate
+      message:
+        payload:
+          properties:
+            category:
+              type: string
+            go_to_state:
+              type: string
+            metadata:
+              $ref: '#/components/schemas/common.Metadata'
+            obj_id:
+              type: string
+            status:
+              type: string
+            status_change_reason:
+              type: string
+            sub_status:
+              type: string
+            sub_status_description:
+              type: string
+            template_id:
+              type: string
+            update_timestamp:
+              type: string
+          type: object
+  SalesdeskOpenChatMessage:
+    description: '{Receive'
+    servers:
+    - kafka
+    subscribe:
+      operationId: onOpenChatMessage
+      message:
+        payload:
+          properties:
+            authorRole:
+              type: string
+            botId:
+              type: string
+            message:
+              $ref: '#/components/schemas/salesdesk.Message'
+            messageRef:
+              type: string
+            metadata:
+              $ref: '#/components/schemas/common.Metadata'
+            provider:
+              type: string
+            rawMessage:
+              items:
+                type: integer
+              type: array
+            status:
+              type: string
+            timestamp:
+              $ref: '#/components/schemas/timestamppb.Timestamp'
+            traceId:
+              type: integer
+            type:
+              type: string
+            user:
+              $ref: '#/components/schemas/salesdesk.WebhookMessageUser'
+          type: object
+components:
+  schemas:
+    bot.BotDAO:
+      properties:
+        botID:
+          type: string
+        createdAt:
+          type: string
+        customerId:
+          type: string
+        id:
+          type: string
+        integrationsKey:
+          type: string
+        returnChatToBot:
+          type: boolean
+        salesdeskAccountID:
+          type: string
+        updatedAt:
+          type: string
+        webhookMetadata:
+          $ref: '#/components/schemas/bot.WebhookMetadata'
+        workflowEndpoint:
+          type: string
+      type: object
+    bot.BotDTO:
+      properties:
+        botID:
+          type: string
+        createdAt:
+          type: string
+        customerId:
+          type: string
+        customerName:
+          type: string
+        id:
+          type: string
+        integrationsKey:
+          type: string
+        returnChatToBot:
+          type: boolean
+        salesdeskAccountID:
+          type: string
+        updatedAt:
+          type: string
+        webhookMetadata:
+          $ref: '#/components/schemas/bot.WebhookMetadata'
+        workflowEndpoint:
+          type: string
+      type: object
+    bot.InsertBotDTO:
+      properties:
+        botId:
+          type: string
+        returnChatToBot:
+          type: boolean
+        salesdeskAccountId:
+          type: string
+        webhookMetadata:
+          $ref: '#/components/schemas/bot.WebhookMetadata'
+        workflowEndpoint:
+          type: string
+      type: object
+    bot.UpdateBotWebhookResponse:
+      properties:
+        webhook:
+          type: string
+      type: object
+    bot.WebhookMetadata:
+      properties:
+        chatBacklogInHours:
+          type: integer
+        messagesPerRequest:
+          type: integer
+        phone:
+          type: string
+        webhook:
+          type: string
+      type: object
+    common.Domain:
+      type: integer
+    common.Metadata:
+      properties:
+        source:
+          $ref: '#/components/schemas/common.Metadata_Source'
+        timestamp:
+          $ref: '#/components/schemas/timestamppb.Timestamp'
+        trace_id:
+          type: string
+      type: object
+    common.Metadata_Source:
+      properties:
+        address:
+          type: string
+        domain:
+          $ref: '#/components/schemas/common.Domain'
+        instance:
+          type: string
+        service:
+          type: string
+      type: object
+    salesdesk.Message:
+      properties:
+        audio:
+          additionalProperties:
+            type: string
+          type: object
+        button:
+          additionalProperties:
+            type: string
+          type: object
+        context:
+          $ref: '#/components/schemas/salesdesk.MessageContext'
+        document:
+          additionalProperties:
+            type: string
+          type: object
+        from:
+          type: string
+        hsm:
+          additionalProperties:
+            type: string
+          type: object
+        id:
+          type: string
+        image:
+          additionalProperties:
+            type: string
+          type: object
+        interactive:
+          additionalProperties:
+            type: string
+          type: object
+        list:
+          additionalProperties:
+            type: string
+          type: object
+        location:
+          additionalProperties:
+            type: string
+          type: object
+        metadata:
+          type: string
+        recipient_type:
+          type: string
+        text:
+          additionalProperties:
+            type: string
+          type: object
+        timestamp:
+          $ref: '#/components/schemas/timestamppb.Timestamp'
+        to:
+          type: string
+        type:
+          type: string
+        video:
+          additionalProperties:
+            type: string
+          type: object
+        voice:
+          additionalProperties:
+            type: string
+          type: object
+      type: object
+    salesdesk.MessageContext:
+      properties:
+        from:
+          type: string
+        id:
+          type: string
+      type: object
+    salesdesk.WebhookMessageUser:
+      properties:
+        profile:
+          $ref: '#/components/schemas/salesdesk.WebhookMessageUserProfile'
+        wa_id:
+          type: string
+      type: object
+    salesdesk.WebhookMessageUserProfile:
+      properties:
+        name:
+          type: string
+      type: object
+    timestamppb.Timestamp:
+      properties:
+        nanos:
+          description: |-
+            Non-negative fractions of a second at nanosecond resolution. Negative
+            second values with fractions must still have non-negative nanos values
+            that count forward in time. Must be from 0 to 999,999,999
+            inclusive.
+          type: integer
+        seconds:
+          description: |-
+            Represents seconds of UTC time since Unix epoch
+            1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
+            9999-12-31T23:59:59Z inclusive.
+          type: integer
+      type: object

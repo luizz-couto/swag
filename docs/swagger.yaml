@@ -1,0 +1,401 @@
+basePath: /
+definitions:
+  bot.BotDAO:
+    properties:
+      botID:
+        type: string
+      createdAt:
+        type: string
+      customerId:
+        type: string
+      id:
+        type: string
+      integrationsKey:
+        type: string
+      returnChatToBot:
+        type: boolean
+      salesdeskAccountID:
+        type: string
+      updatedAt:
+        type: string
+      webhookMetadata:
+        $ref: '#/definitions/bot.WebhookMetadata'
+      workflowEndpoint:
+        type: string
+    type: object
+  bot.BotDTO:
+    properties:
+      botID:
+        type: string
+      createdAt:
+        type: string
+      customerId:
+        type: string
+      customerName:
+        type: string
+      id:
+        type: string
+      integrationsKey:
+        type: string
+      returnChatToBot:
+        type: boolean
+      salesdeskAccountID:
+        type: string
+      updatedAt:
+        type: string
+      webhookMetadata:
+        $ref: '#/definitions/bot.WebhookMetadata'
+      workflowEndpoint:
+        type: string
+    type: object
+  bot.InsertBotDTO:
+    properties:
+      botId:
+        type: string
+      returnChatToBot:
+        type: boolean
+      salesdeskAccountId:
+        type: string
+      webhookMetadata:
+        $ref: '#/definitions/bot.WebhookMetadata'
+      workflowEndpoint:
+        type: string
+    required:
+    - botId
+    - salesdeskAccountId
+    type: object
+  bot.UpdateBotWebhookResponse:
+    properties:
+      webhook:
+        type: string
+    type: object
+  bot.WebhookMetadata:
+    properties:
+      chatBacklogInHours:
+        type: integer
+      messagesPerRequest:
+        type: integer
+      phone:
+        type: string
+      webhook:
+        type: string
+    type: object
+  common.Domain:
+    enum:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - Domain_UNKNOWN_DOMAIN
+    - Domain_PLATFORM
+    - Domain_BROADCASTS
+    - Domain_CONVERSATIONS
+    - Domain_APPLICATIONS
+    - Domain_INSIGHTS
+    - Domain_CHANNELS
+  common.Metadata:
+    properties:
+      source:
+        $ref: '#/definitions/common.Metadata_Source'
+      timestamp:
+        $ref: '#/definitions/timestamppb.Timestamp'
+      trace_id:
+        type: string
+    type: object
+  common.Metadata_Source:
+    properties:
+      address:
+        type: string
+      domain:
+        $ref: '#/definitions/common.Domain'
+      instance:
+        type: string
+      service:
+        type: string
+    type: object
+  salesdesk.Message:
+    properties:
+      audio:
+        additionalProperties:
+          type: string
+        type: object
+      button:
+        additionalProperties:
+          type: string
+        type: object
+      context:
+        $ref: '#/definitions/salesdesk.MessageContext'
+      document:
+        additionalProperties:
+          type: string
+        type: object
+      from:
+        type: string
+      hsm:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      image:
+        additionalProperties:
+          type: string
+        type: object
+      interactive:
+        additionalProperties:
+          type: string
+        type: object
+      list:
+        additionalProperties:
+          type: string
+        type: object
+      location:
+        additionalProperties:
+          type: string
+        type: object
+      metadata:
+        type: string
+      recipient_type:
+        type: string
+      text:
+        additionalProperties:
+          type: string
+        type: object
+      timestamp:
+        $ref: '#/definitions/timestamppb.Timestamp'
+      to:
+        type: string
+      type:
+        type: string
+      video:
+        additionalProperties:
+          type: string
+        type: object
+      voice:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  salesdesk.MessageContext:
+    properties:
+      from:
+        type: string
+      id:
+        type: string
+    type: object
+  salesdesk.WebhookMessageUser:
+    properties:
+      profile:
+        $ref: '#/definitions/salesdesk.WebhookMessageUserProfile'
+      wa_id:
+        type: string
+    type: object
+  salesdesk.WebhookMessageUserProfile:
+    properties:
+      name:
+        type: string
+    type: object
+  timestamppb.Timestamp:
+    properties:
+      nanos:
+        description: |-
+          Non-negative fractions of a second at nanosecond resolution. Negative
+          second values with fractions must still have non-negative nanos values
+          that count forward in time. Must be from 0 to 999,999,999
+          inclusive.
+        type: integer
+      seconds:
+        description: |-
+          Represents seconds of UTC time since Unix epoch
+          1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
+          9999-12-31T23:59:59Z inclusive.
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is the Salesdesk API
+  title: Salesdesk API
+  version: "1.0"
+paths:
+  /v1/bot:
+    get:
+      description: Returns bot info for the given Instance (AccountID)
+      operationId: getBotByInstance
+      parameters:
+      - description: Instance (AccountID)
+        in: query
+        name: instance
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bot.BotDTO'
+        "404":
+          description: No Bot Found for given Instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Bot
+    post:
+      description: Add new bot to salesdesk
+      operationId: addNewBot
+      parameters:
+      - description: New bot values
+        in: body
+        name: InsertBotRequest
+        required: true
+        schema:
+          $ref: '#/definitions/bot.InsertBotDTO'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Missing or Invalid body Inputs
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Bot
+  /v1/bot/{botId}:
+    delete:
+      description: Removes bot from integrations webhook
+      operationId: deleteBotById
+      parameters:
+      - description: Bot ID
+        in: path
+        name: botId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "404":
+          description: Bot not found for given BotID
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Bot
+    get:
+      description: Returns bot info for the given BotID
+      operationId: getBotById
+      parameters:
+      - description: Bot ID
+        in: path
+        name: botId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bot.BotDTO'
+        "404":
+          description: No Bot Found for given BotID
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Bot
+  /v1/bot/{botId}/webhook:
+    post:
+      description: Update Bot Webhook data
+      operationId: updateBotWebhook
+      parameters:
+      - description: Bot ID
+        in: path
+        name: botId
+        required: true
+        type: string
+      - description: New webhook data values
+        in: body
+        name: UpdateBotWebhookRequest
+        required: true
+        schema:
+          $ref: '#/definitions/bot.WebhookMetadata'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bot.UpdateBotWebhookResponse'
+        "400":
+          description: Missing or Invalid path/body Inputs
+          schema:
+            type: string
+        "401":
+          description: Missing authorization token in header
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Bot
+  /v1/bot/all:
+    get:
+      description: Returns all bots info
+      operationId: getAllBots
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bot.BotDAO'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Bot
+  /v2/bot:
+    get:
+      description: Returns all bots info for the given Instance (AccountID)
+      operationId: getBotsByInstance
+      parameters:
+      - description: Instance (AccountID)
+        in: query
+        name: instance
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bot.BotDAO'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      tags:
+      - Bot
+swagger: "2.0"

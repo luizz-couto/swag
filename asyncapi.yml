@@ -1,0 +1,194 @@
+asyncapi: 2.4.0
+info:
+  title: Capi Freeway
+  version: v1.10.0
+servers:
+  kafka-broker:
+    url: host:port
+    description: Kafka broker
+    protocol: kafka
+channels:
+  dl-topic:
+    publish:
+      message:
+        $ref: '#/components/messages/ChannelChannelResponse'
+  yalo-message-status:
+    publish:
+      message:
+        $ref: '#/components/messages/MessageYaloMessageStatus'
+  yalo-messages:
+    publish:
+      message:
+        $ref: '#/components/messages/MessageYaloMessage'
+    subscribe:
+      message:
+        $ref: '#/components/messages/MessageYaloMessage'
+components:
+  schemas:
+    ChannelChannel:
+      type: integer
+    ChannelChannelResponse:
+      properties:
+        account_id:
+          type: string
+        bot_id:
+          type: string
+        channel:
+          $ref: '#/components/schemas/ChannelChannel'
+        command:
+          type: string
+        destination:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/CommonMetadata'
+        request_body:
+          items:
+            minimum: 0
+            type: integer
+          type: array
+        request_uuid:
+          type: string
+        response_body:
+          items:
+            minimum: 0
+            type: integer
+          type: array
+        status:
+          $ref: '#/components/schemas/ChannelChannelResponse_Status'
+        type:
+          type: string
+      type: object
+    ChannelChannelResponse_Status:
+      type: integer
+    CommonDomain:
+      type: integer
+    CommonMetadata:
+      properties:
+        source:
+          $ref: '#/components/schemas/CommonMetadata_Source'
+        timestamp:
+          $ref: '#/components/schemas/TimestamppbTimestamp'
+        trace_id:
+          type: string
+      type: object
+    CommonMetadata_Source:
+      properties:
+        address:
+          type: string
+        domain:
+          $ref: '#/components/schemas/CommonDomain'
+        instance:
+          type: string
+        service:
+          type: string
+      type: object
+    MessageRole:
+      type: integer
+    MessageYaloMessage:
+      properties:
+        author:
+          $ref: '#/components/schemas/MessageYaloMessage_Author'
+        flow_id:
+          type: string
+        message_body:
+          items:
+            minimum: 0
+            type: integer
+          type: array
+        message_id:
+          type: string
+        message_type:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/CommonMetadata'
+        photo_url:
+          type: string
+        provider:
+          type: string
+        reader:
+          type: string
+        referal:
+          $ref: '#/components/schemas/MessageYaloMessage_Referal'
+        text:
+          type: string
+      type: object
+    MessageYaloMessageStatus:
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/MessageYaloMessageStatus_Error'
+          type: array
+        flow_id:
+          type: string
+        message_id:
+          type: string
+        message_status_body:
+          items:
+            minimum: 0
+            type: integer
+          type: array
+        metadata:
+          $ref: '#/components/schemas/CommonMetadata'
+        recipient_id:
+          type: string
+        status:
+          type: string
+      type: object
+    MessageYaloMessageStatus_Error:
+      properties:
+        code:
+          type: string
+        details:
+          type: string
+        sub_code:
+          type: string
+        title:
+          type: string
+      type: object
+    MessageYaloMessage_Author:
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          $ref: '#/components/schemas/MessageRole'
+      type: object
+    MessageYaloMessage_Referal:
+      properties:
+        body:
+          type: string
+        headline:
+          type: string
+        image_url:
+          type: string
+        media_type:
+          type: string
+        source_id:
+          type: string
+        source_type:
+          type: string
+        source_url:
+          type: string
+        thumbnail_url:
+          type: string
+        video_url:
+          type: string
+      type: object
+    TimestamppbTimestamp:
+      properties:
+        nanos:
+          type: integer
+        seconds:
+          type: integer
+      type: object
+  messages:
+    ChannelChannelResponse:
+      payload:
+        $ref: '#/components/schemas/ChannelChannelResponse'
+    MessageYaloMessage:
+      payload:
+        $ref: '#/components/schemas/MessageYaloMessage'
+    MessageYaloMessageStatus:
+      payload:
+        $ref: '#/components/schemas/MessageYaloMessageStatus'

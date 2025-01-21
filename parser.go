@@ -21,6 +21,7 @@ import (
 
 	"github.com/KyleBanks/depth"
 	"github.com/go-openapi/spec"
+	asyncSpec "github.com/swaggest/go-asyncapi/spec-2.4.0"
 )
 
 const (
@@ -112,6 +113,9 @@ var allMethod = map[string]struct{}{
 type Parser struct {
 	// swagger represents the root document object for the API specification
 	swagger *spec.Swagger
+
+	// asyncAPI represents the root document object for AsyncAPI specification
+	asyncAPI *asyncSpec.AsyncAPI
 
 	// packages store entities of APIs, definitions, file, package path etc.  and their relations
 	packages *PackagesDefinitions
@@ -239,6 +243,13 @@ func New(options ...func(*Parser)) *Parser {
 		tags:               make(map[string]struct{}),
 		fieldParserFactory: newTagBaseFieldParser,
 		Overrides:          make(map[string]string),
+		asyncAPI: &asyncSpec.AsyncAPI{
+			Channels: make(map[string]asyncSpec.ChannelItem),
+			Servers:  make(map[string]asyncSpec.ServersAdditionalProperties),
+			Components: &asyncSpec.Components{
+				Schemas: make(map[string]map[string]interface{}),
+			},
+		},
 	}
 
 	for _, option := range options {
@@ -398,6 +409,13 @@ func (parser *Parser) ParseAPIMultiSearchDir(searchDirs []string, mainAPIFile st
 		err = parser.getAllGoFileInfo(packageDir, searchDir)
 		if err != nil {
 			return err
+		}
+	}
+
+	for key, value := range parser.packages.files {
+		log.Printf("key: %v", key.Name.Name)
+		for _, declValue := range value.File.Decls {
+			log.Printf("declValue: %v, %v", declValue.Pos(), declValue.End())
 		}
 	}
 
@@ -1002,6 +1020,7 @@ func (parser *Parser) matchTags(comments []*ast.Comment) (match bool) {
 	match = false
 	for _, comment := range comments {
 		for _, tag := range getTagsFromComment(comment.Text) {
+			log.Printf("Parsing tag: %s", tag)
 			if _, has := parser.tags["!"+tag]; has {
 				return false
 			}
@@ -1043,6 +1062,7 @@ func matchExtension(extensionToMatch string, comments []*ast.Comment) (match boo
 func getFuncDoc(decl any) (*ast.CommentGroup, bool) {
 	switch astDecl := decl.(type) {
 	case *ast.FuncDecl: // func name() {}
+		log.Printf("Parsing comment of func: %s", astDecl.Name.Name)
 		return astDecl.Doc, true
 	case *ast.GenDecl: // var name = namePointToFuncDirectlyOrIndirectly
 		if astDecl.Tok != token.VAR {
@@ -1075,7 +1095,7 @@ func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 	if parser.ParseFuncBody {
 		for _, astComments := range fileInfo.File.Comments {
 			if astComments.List != nil {
-				if err := parser.parseRouterAPIInfoComment(astComments.List, fileInfo); err != nil {
+				if err := parser.parseFunctionInfoComment(astComments.List, fileInfo); err != nil {
 					return err
 				}
 			}
@@ -1087,7 +1107,7 @@ func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 	for _, decl := range fileInfo.File.Decls {
 		funcDoc, ok := getFuncDoc(decl)
 		if ok && funcDoc != nil && funcDoc.List != nil {
-			if err := parser.parseRouterAPIInfoComment(funcDoc.List, fileInfo); err != nil {
+			if err := parser.parseFunctionInfoComment(funcDoc.List, fileInfo); err != nil {
 				return err
 			}
 		}
@@ -1096,23 +1116,68 @@ func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 	return nil
 }
 
-func (parser *Parser) parseRouterAPIInfoComment(comments []*ast.Comment, fileInfo *AstFileInfo) error {
+func (parser *Parser) parseFunctionInfoComment(comments []*ast.Comment, fileInfo *AstFileInfo) error {
 	if parser.matchTags(comments) && matchExtension(parser.parseExtension, comments) {
 		// for per 'function' comment, create a new 'Operation' object
-		operation := NewOperation(parser, SetCodeExampleFilesDirectory(parser.codeExampleFilesDir))
-		for _, comment := range comments {
-			err := operation.ParseComment(comment.Text, fileInfo.File)
+		if len(comments) > 0 && strings.ToLower(comments[0].Text) == "// @asyncapi" {
+			asyncAPIScope := NewAsyncScope(parser)
+			for _, comment := range comments {
+				log.Printf("Parsing comment: %v", comment.Text)
+				err := asyncAPIScope.ParseAsyncAPIComment(comment.Text, fileInfo.File)
+				if err != nil {
+					return fmt.Errorf("ParseAsyncAPIComment error in file %s for comment: '%s': %+v", fileInfo.Path, comment.Text, err)
+				}
+			}
+			err := processAsyncAPIScope(parser, asyncAPIScope)
 			if err != nil {
-				return fmt.Errorf("ParseComment error in file %s for comment: '%s': %+v", fileInfo.Path, comment.Text, err)
+				return err
 			}
-			if operation.State != "" && operation.State != parser.HostState {
-				return nil
+		} else {
+			httpOperation := NewOperation(parser, SetCodeExampleFilesDirectory(parser.codeExampleFilesDir))
+			for _, comment := range comments {
+				//log.Printf("Parsing comment: %v", comment.Text)
+				err := httpOperation.ParseComment(comment.Text, fileInfo.File)
+				if err != nil {
+					return fmt.Errorf("ParseComment error in file %s for comment: '%s': %+v", fileInfo.Path, comment.Text, err)
+				}
+				if httpOperation.State != "" && httpOperation.State != parser.HostState {
+					return nil
+				}
+			}
+			err := processRouterOperation(parser, httpOperation)
+			if err != nil {
+				return err
 			}
 		}
-		err := processRouterOperation(parser, operation)
-		if err != nil {
-			return err
+	}
+
+	return nil
+}
+
+func processAsyncAPIScope(parser *Parser, asyncAPIScope *AsyncScope) error {
+	for serverName, server := range asyncAPIScope.servers {
+		parser.asyncAPI.Servers[serverName] = *server
+	}
+
+	for channelName, channel := range asyncAPIScope.channels {
+		parser.asyncAPI.Channels[channelName] = *channel
+	}
+
+	for _, operation := range asyncAPIScope.operations {
+		operationChannel, ok := parser.asyncAPI.Channels[operation.channelName]
+		if !ok {
+			continue
 		}
+
+		if operation.kind == "consumer" {
+			operationChannel.Subscribe = &operation.Operation
+		}
+
+		if operation.kind == "publisher" {
+			operationChannel.Publish = &operation.Operation
+		}
+
+		parser.asyncAPI.Channels[operation.channelName] = operationChannel
 	}
 
 	return nil
@@ -1411,6 +1476,11 @@ func (parser *Parser) fillDefinitionDescription(definition *spec.Schema, file *a
 			}
 			definition.Description, err =
 				parser.extractDeclarationDescription(typeName, typeSpec.Doc, typeSpec.Comment, generalDeclaration.Doc)
+
+			
+			log.Printf("definition properties len: %v", definition.Properties.ToOrderedSchemaItems().Len())
+			log.Printf("definition description: %s, err: %v", definition.Description, err)
+
 			if err != nil {
 				return
 			}
@@ -1949,6 +2019,10 @@ func walkWith(excludes map[string]struct{}, parseVendor bool) func(path string, 
 // GetSwagger returns *spec.Swagger which is the root document object for the API specification.
 func (parser *Parser) GetSwagger() *spec.Swagger {
 	return parser.swagger
+}
+
+func (parser *Parser) GetAsyncAPI() *asyncSpec.AsyncAPI {
+	return parser.asyncAPI
 }
 
 // addTestType just for tests.
