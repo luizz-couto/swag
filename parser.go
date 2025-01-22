@@ -1178,20 +1178,20 @@ func processAsyncAPIScope(parser *Parser, asyncAPIScope *AsyncScope) error {
 	}
 
 	for _, operation := range asyncAPIScope.operations {
-		operationChannel, ok := parser.asyncAPI.Channels[operation.channelName]
+		operationChannel, ok := parser.asyncAPI.Channels[operation.channel]
 		if !ok {
 			operationChannel = asyncSpec.ChannelItem{}
 		}
 
-		if operation.kind == "consumer" {
+		if operation.action == Receive {
 			operationChannel.Subscribe = &operation.Operation
 		}
 
-		if operation.kind == "publisher" {
+		if operation.action == Send {
 			operationChannel.Publish = &operation.Operation
 		}
 
-		parser.asyncAPI.Channels[operation.channelName] = operationChannel
+		parser.asyncAPI.Channels[operation.channel] = operationChannel
 	}
 
 	return nil

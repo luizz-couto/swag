@@ -12,6 +12,14 @@ import (
 	"github.com/swaggest/go-asyncapi/spec-2.4.0"
 )
 
+type OperationAction string
+type Attribute string
+
+const (
+	Send    OperationAction = "send"
+	Receive OperationAction = "receive"
+)
+
 type AsyncScope struct {
 	parser *Parser
 	servers map[string]*spec.ServersAdditionalProperties
@@ -20,20 +28,19 @@ type AsyncScope struct {
 }
 
 type OperationWithChannel struct {
-	kind string
-	channelName string
+	action OperationAction
+	channel string
 	spec.Operation
 }
 
 const (
-	asyncHeaderAttr = "@asyncapi"
-	serverAttr = "@server"
-	channelAttr = "@channel"
-	operationAttr = "@operation"
+	asyncHeaderAttr Attribute = "@asyncapi"
+	serverAttr Attribute = "@server"
+	channelAttr Attribute = "@channel"
+	operationAttr Attribute = "@operation"
 )
 
 // NewAsyncOperation creates a new AsyncOperation with default properties.
-// map[int]Response.
 func NewAsyncScope(parser *Parser) *AsyncScope {
 	if parser == nil {
 		parser = New()
@@ -49,6 +56,17 @@ func NewAsyncScope(parser *Parser) *AsyncScope {
 	return asyncOperation
 }
 
+// AttributeHandler is a map of attribute to the function that handles the attribute.
+var AttributeHandler = map[Attribute]func(*AsyncScope, *string, string, *ast.File) error {
+	asyncHeaderAttr: func(as *AsyncScope, s1 *string, s2 string, f *ast.File) error {
+		return nil
+	},
+	serverAttr:  (*AsyncScope).ParseServerComment,
+	channelAttr: (*AsyncScope).ParseChannelComment,
+	operationAttr: (*AsyncScope).ParseOperationComment,
+}
+
+// ParseAsyncAPIComment parses the comment line and sets the AsyncAPI properties.
 func (asyncScope *AsyncScope) ParseAsyncAPIComment(funcName *string, comment string, astFile *ast.File) error {
 	commentLine := strings.TrimSpace(strings.TrimLeft(comment, "/"))
 	if len(commentLine) == 0 {
@@ -58,33 +76,24 @@ func (asyncScope *AsyncScope) ParseAsyncAPIComment(funcName *string, comment str
 	fields := FieldsByAnySpace(commentLine, 2)
 	attribute := fields[0]
 	lowerAttribute := strings.ToLower(attribute)
+	
 	var lineRemainder string
 	if len(fields) > 1 {
 		lineRemainder = fields[1]
 	}
-	
-	log.Printf("LOWER ATTR: %v", len(lowerAttribute))
 
-	switch lowerAttribute {
-	case asyncHeaderAttr:
-		return nil
-
-	case serverAttr:
-		asyncScope.ParseServerComment(lineRemainder)
-
-	case channelAttr:
-		asyncScope.ParseChannelComment(lineRemainder)
-
-	case operationAttr:
-		asyncScope.ParseOperationComment(funcName, lineRemainder, astFile)
+	handler, exists := AttributeHandler[Attribute(lowerAttribute)]
+	if exists {
+		return handler(asyncScope, funcName, lineRemainder, astFile)
 	}
-	return nil
+	
+	return fmt.Errorf("unknown attribute '%s' in comment '%s'", attribute, comment)
 }
 
 var serverCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+(\S+)`)
 
 // @server {name} {protocol} {host}
-func (asyncScope *AsyncScope) ParseServerComment(commentLine string) error {
+func (asyncScope *AsyncScope) ParseServerComment(funcName *string, commentLine string, astFile *ast.File) error {
 	matches := serverCommentPattern.FindStringSubmatch(commentLine)
 	if len(matches) < 4 {
 		return fmt.Errorf("missing required param comment parameters \"%s\"", commentLine)
@@ -107,7 +116,7 @@ func (asyncScope *AsyncScope) ParseServerComment(commentLine string) error {
 var channelCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+"([^"]+)"`)
 
 // @channel {name/topic} {server} "{description}"
-func (asyncScope *AsyncScope) ParseChannelComment(commentLine string) error {
+func (asyncScope *AsyncScope) ParseChannelComment(funcName *string, commentLine string, astFile *ast.File) error {
 	matches := channelCommentPattern.FindStringSubmatch(commentLine)
 	log.Println(len(matches))
 	if len(matches) < 4 {
@@ -148,7 +157,11 @@ func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLin
 		argsStartIndex = 2
 	}
 
-	operationKind := matches[argsStartIndex]
+	operationKind := OperationAction(matches[argsStartIndex])
+	if operationKind != Send && operationKind != Receive {
+		return fmt.Errorf("invalid operation action '%s' for commentLine '%s'. Valid values are 'send' or 'receive' ", operationKind, commentLine)
+	}
+
 	channel := matches[argsStartIndex + 1]
 	message := matches[argsStartIndex + 2]
 
@@ -195,8 +208,8 @@ func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLin
 	operation.WithID(operationID).WithMessage(msg)
 
 	asyncScope.operations[operationID] = &OperationWithChannel{
-		kind: operationKind,
-		channelName: channel,
+		action: operationKind,
+		channel: channel,
 		Operation: operation,
 	}
 
