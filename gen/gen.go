@@ -237,8 +237,15 @@ func (g *Gen) Build(config *Config) error {
 		asyncAPI.Info.Description = swagger.Info.Description
 		asyncAPI.Info.Version = swagger.Info.Version
 
+		if err := validateAsyncAPIServers(asyncAPI); err != nil {
+			return err
+		}
+
 		reflector := &asyncReflector.Reflector{Schema: asyncAPI}
 		for channelName, channel := range asyncAPI.Channels {
+			if err := validateAsyncAPIChannel(asyncAPI, &channel); err != nil {
+				return fmt.Errorf("channel '%s' is invalid: %w", channelName, err)
+			}
 			reflector.AddChannel(asyncReflector.ChannelInfo{
 				Name: channelName,
 				BaseChannelItem: &channel,
@@ -310,6 +317,35 @@ func findSchemaInParsedSchemas(parser *swag.Parser, schemaName string) (*swag.Sc
 		}
 	}
 	return nil, fmt.Errorf("unable to find schema for '%s'", schemaName)
+}
+
+func validateAsyncAPIServers(asyncAPI *asyncSpec.AsyncAPI) error {
+	if len(asyncAPI.Servers) == 0 {
+		return fmt.Errorf("AsyncAPI spec must have at least one server")
+	}
+
+	for serverName, server := range asyncAPI.Servers {
+		if server.Server.URL == "" {
+			return fmt.Errorf("URL for server '%s' not provided", serverName)
+		}
+		if server.Server.Protocol == "" {
+			return fmt.Errorf("protocol for server '%s' not provided", serverName)
+		}
+	}
+
+	return nil
+}
+
+func validateAsyncAPIChannel(asyncAPI *asyncSpec.AsyncAPI, channel *asyncSpec.ChannelItem) error {
+	if len(channel.Servers) == 0 {
+		return fmt.Errorf("some operation is using a channel that was not defined")
+	}
+
+	channelServer := channel.Servers[0]
+	if _, ok := asyncAPI.Servers[channelServer]; !ok {
+		return fmt.Errorf("server '%s' not defined in AsyncAPI spec", channelServer)
+	}
+	return nil
 }
 
 func replaceStringInJSON(originalJSON []byte, oldValue, newValue string) ([]byte, error) {
