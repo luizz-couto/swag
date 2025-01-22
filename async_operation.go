@@ -104,9 +104,9 @@ func (asyncScope *AsyncScope) ParseServerComment(commentLine string) error {
 	return nil
 }
 
-var channelCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+(\S+)`)
+var channelCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+"([^"]+)"`)
 
-// @channel {name/topic} {server} {description}
+// @channel {name/topic} {server} "{description}"
 func (asyncScope *AsyncScope) ParseChannelComment(commentLine string) error {
 	matches := channelCommentPattern.FindStringSubmatch(commentLine)
 	log.Println(len(matches))
@@ -176,6 +176,7 @@ func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLin
 		}
 	
 		msg.OneOf1Ens().WithMessageEntity(spec.MessageEntity{
+			MessageID: message,
 			Payload: map[string]interface{}{
 				"properties": mapOfProperties,
 				"type": typeSchema.Type[0],
@@ -183,6 +184,7 @@ func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLin
 		})
 	} else {
 		msg.OneOf1Ens().WithMessageEntity(spec.MessageEntity{
+			MessageID: message,
 			Payload: map[string]interface{}{
 				"type": typeSchema.Type[0],
 			},

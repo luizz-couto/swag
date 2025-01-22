@@ -9,12 +9,13 @@ servers:
     protocol: kafka
 channels:
   EngagementTemplateCreated:
-    description: '{Receive'
+    description: Receive a message when a template is created
     servers:
     - kafka
     subscribe:
       operationId: onTemplateCreation
       message:
+        messageId: engagementSchemas.TemplateCreated
         payload:
           properties:
             account_id:
@@ -41,12 +42,13 @@ channels:
               type: string
           type: object
   EngagementTemplateUpdated:
-    description: '{Receive'
+    description: Receive a message when a template is updated
     servers:
     - kafka
     subscribe:
       operationId: UpdateTemplate
       message:
+        messageId: engagementSchemas.TemplateUpdated
         payload:
           properties:
             category:
@@ -71,12 +73,13 @@ channels:
               type: string
           type: object
   SalesdeskOpenChatMessage:
-    description: '{Receive'
+    description: Receive a message when a chat is opened
     servers:
     - kafka
     subscribe:
       operationId: onOpenChatMessage
       message:
+        messageId: salesdesk.OpenChatMessageEvent
         payload:
           properties:
             authorRole:
