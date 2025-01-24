@@ -1013,7 +1013,6 @@ func (parser *Parser) matchTags(comments []*ast.Comment) (match bool) {
 	match = false
 	for _, comment := range comments {
 		for _, tag := range getTagsFromComment(comment.Text) {
-			log.Printf("Parsing tag: %s", tag)
 			if _, has := parser.tags["!"+tag]; has {
 				return false
 			}
@@ -1119,75 +1118,99 @@ func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 }
 
 func (parser *Parser) parseFunctionInfoComment(funcName *string, comments []*ast.Comment, fileInfo *AstFileInfo) error {
-	if parser.matchTags(comments) && matchExtension(parser.parseExtension, comments) {
-		// for per 'function' comment, create a new 'Operation' object
-		if len(comments) > 0 && strings.ToLower(comments[0].Text) == "// @asyncapi" {
-			asyncAPIScope := NewAsyncScope(parser)
-			for _, comment := range comments {
-				log.Printf("Parsing comment: %v", comment.Text)
-				err := asyncAPIScope.ParseAsyncAPIComment(funcName, comment.Text, fileInfo.File)
-				if err != nil {
-					return fmt.Errorf("ParseAsyncAPIComment error in file %s for comment: '%s': %+v", fileInfo.Path, comment.Text, err)
-				}
-			}
-			err := processAsyncAPIScope(parser, asyncAPIScope)
-			if err != nil {
-				return err
-			}
-		} else {
-			httpOperation := NewOperation(parser, SetCodeExampleFilesDirectory(parser.codeExampleFilesDir))
-			for _, comment := range comments {
-				//log.Printf("Parsing comment: %v", comment.Text)
-				err := httpOperation.ParseComment(comment.Text, fileInfo.File)
-				if err != nil {
-					return fmt.Errorf("ParseComment error in file %s for comment: '%s': %+v", fileInfo.Path, comment.Text, err)
-				}
-				if httpOperation.State != "" && httpOperation.State != parser.HostState {
-					return nil
-				}
-			}
-			err := processRouterOperation(parser, httpOperation)
-			if err != nil {
-				return err
-			}
+	if !parser.matchTags(comments) || !matchExtension(parser.parseExtension, comments) {
+		return nil
+	}
+
+	if isAsyncAPIComment(comments) {
+		return parser.handleAsyncAPIComments(funcName, comments, fileInfo)
+	}
+
+	return parser.handleOpenAPIComments(comments, fileInfo)
+}
+
+// Determines if the comments represent an AsyncAPI block.
+func isAsyncAPIComment(comments []*ast.Comment) bool {
+	return len(comments) > 0 && strings.ToLower(comments[0].Text) == "// @asyncapi"
+}
+
+// Handles AsyncAPI comments by creating a new scope and processing it.
+func (parser *Parser) handleAsyncAPIComments(funcName *string, comments []*ast.Comment, fileInfo *AstFileInfo) error {
+	asyncAPIScope := NewAsyncScope(parser)
+
+	for _, comment := range comments {
+		log.Printf("Parsing AsyncAPI comment: %v", comment.Text)
+		if err := asyncAPIScope.ParseAsyncAPIComment(funcName, comment.Text, fileInfo.File); err != nil {
+			return fmt.Errorf("ParseAsyncAPIComment error in file %s for comment: '%s': %+v", fileInfo.Path, comment.Text, err)
 		}
 	}
 
+	return processAsyncAPIScope(parser, asyncAPIScope)
+}
+
+// Handles OpenAPI comments by creating an operation and processing it.
+func (parser *Parser) handleOpenAPIComments(comments []*ast.Comment, fileInfo *AstFileInfo) error {
+	// for per 'function' comment, create a new 'Operation' object
+	httpOperation := NewOperation(parser, SetCodeExampleFilesDirectory(parser.codeExampleFilesDir))
+
+	for _, comment := range comments {
+		if err := httpOperation.ParseComment(comment.Text, fileInfo.File); err != nil {
+			return fmt.Errorf("ParseComment error in file %s for comment: '%s': %+v", fileInfo.Path, comment.Text, err)
+		}
+
+		// Early exit if the operation state changes and is no longer the host state.
+		if httpOperation.State != "" && httpOperation.State != parser.HostState {
+			return nil
+		}
+	}
+
+	return processRouterOperation(parser, httpOperation)
+}
+
+// Processes the AsyncAPI scope and updates the parser's AsyncAPI configuration.
+func processAsyncAPIScope(parser *Parser, asyncAPIScope *AsyncScope) error {
+	addAsyncAPIServers(parser, asyncAPIScope)
+	addAsyncAPIChannels(parser, asyncAPIScope)
+	addAsyncAPIOperations(parser, asyncAPIScope)
 	return nil
 }
 
-func processAsyncAPIScope(parser *Parser, asyncAPIScope *AsyncScope) error {
+// Adds servers from the AsyncAPI scope to the parser's AsyncAPI configuration.
+func addAsyncAPIServers(parser *Parser, asyncAPIScope *AsyncScope) {
 	for serverName, server := range asyncAPIScope.servers {
 		parser.asyncAPI.Servers[serverName] = *server
 	}
+}
 
+// Adds channels from the AsyncAPI scope to the parser's AsyncAPI configuration.
+func addAsyncAPIChannels(parser *Parser, asyncAPIScope *AsyncScope) {
 	for channelName, channel := range asyncAPIScope.channels {
-		if alreadyExistentChannel, ok := parser.asyncAPI.Channels[channelName]; ok {
-			channel.Publish = alreadyExistentChannel.Publish
-			channel.Subscribe = alreadyExistentChannel.Subscribe
+		if existingChannel, ok := parser.asyncAPI.Channels[channelName]; ok {
+			// Preserve existing publish/subscribe operations.
+			channel.Publish = existingChannel.Publish
+			channel.Subscribe = existingChannel.Subscribe
 		}
 		parser.asyncAPI.Channels[channelName] = *channel
 	}
+}
 
+// Adds operations from the AsyncAPI scope to the corresponding channels in the parser's AsyncAPI configuration.
+func addAsyncAPIOperations(parser *Parser, asyncAPIScope *AsyncScope) {
 	for _, operation := range asyncAPIScope.operations {
-		operationChannel, ok := parser.asyncAPI.Channels[operation.channel]
-		if !ok {
-			operationChannel = asyncSpec.ChannelItem{}
-		}
+		channel := parser.asyncAPI.Channels[operation.channel]
 
 		if operation.action == Receive {
-			operationChannel.Subscribe = &operation.Operation
+			channel.Subscribe = &operation.Operation
 		}
 
 		if operation.action == Send {
-			operationChannel.Publish = &operation.Operation
+			channel.Publish = &operation.Operation
 		}
 
-		parser.asyncAPI.Channels[operation.channel] = operationChannel
+		parser.asyncAPI.Channels[operation.channel] = channel
 	}
-
-	return nil
 }
+
 
 func refRouteMethodOp(item *spec.PathItem, method string) (op **spec.Operation) {
 	switch method {
