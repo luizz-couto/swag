@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	typeSpec "github.com/go-openapi/spec"
 	"github.com/swaggest/go-asyncapi/spec-2.4.0"
 )
 
@@ -58,7 +59,7 @@ func NewAsyncScope(parser *Parser) *AsyncScope {
 
 // AttributeHandler is a map of attribute to the function that handles the attribute.
 var AttributeHandler = map[Attribute]func(*AsyncScope, *string, string, *ast.File) error {
-	asyncHeaderAttr: func(as *AsyncScope, s1 *string, s2 string, f *ast.File) error {
+	asyncHeaderAttr: func(as *AsyncScope, funcName *string, comment string, astFile *ast.File) error {
 		return nil
 	},
 	serverAttr:  (*AsyncScope).ParseServerComment,
@@ -118,7 +119,6 @@ var channelCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+"([^"]+)"`)
 // @channel {name/topic} {server} "{description}"
 func (asyncScope *AsyncScope) ParseChannelComment(funcName *string, commentLine string, astFile *ast.File) error {
 	matches := channelCommentPattern.FindStringSubmatch(commentLine)
-	log.Println(len(matches))
 	if len(matches) < 4 {
 		return fmt.Errorf("missing required param comment parameters \"%s\"", commentLine)
 	}
@@ -137,33 +137,27 @@ func (asyncScope *AsyncScope) ParseChannelComment(funcName *string, commentLine 
 
 var operationCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+(\S+)\s*(.*)?`)
 
-// @operation {id} {type} {channel} {message}
-// @operation {type} {channel} {message}
+
+// @operation {operationID} {action} {channel} {message}
+// @operation {action} {channel} {message}
 func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLine string, astFile *ast.File) error {
-	matches := operationCommentPattern.FindStringSubmatch(commentLine)
-	if len(matches) < 5 {
-		return fmt.Errorf("missing required param comment parameters \"%s\"", commentLine)
+	matches, err := asyncScope.validateCommentLine(commentLine)
+	if err != nil {
+		return err
 	}
 
-	operationID := ""
-	argsStartIndex := 1
-	if matches[4] == "" {
-		if funcName == nil {
-			return fmt.Errorf("unable to get operation ID for commentLine '%s'", commentLine)
-		}
-		operationID = *funcName
-	} else {
-		operationID = matches[1]
-		argsStartIndex = 2
+	operationID, argsStartIndex, err := asyncScope.determineOperationID(funcName, matches)
+	if err != nil {
+		return err
 	}
 
-	operationKind := OperationAction(matches[argsStartIndex])
-	if operationKind != Send && operationKind != Receive {
-		return fmt.Errorf("invalid operation action '%s' for commentLine '%s'. Valid values are 'send' or 'receive' ", operationKind, commentLine)
+	operationAction, err := asyncScope.validateOperationAction(matches[argsStartIndex], commentLine)
+	if err != nil {
+		return err
 	}
 
-	channel := matches[argsStartIndex + 1]
-	message := matches[argsStartIndex + 2]
+	channel := matches[argsStartIndex+1]
+	message := matches[argsStartIndex+2]
 
 	typeSchema, err := asyncScope.parser.getTypeSchema(message, astFile, false, true)
 	if err != nil {
@@ -171,53 +165,97 @@ func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLin
 		return err
 	}
 
-	msg := spec.Message{}
-	if (typeSchema.Type[0] == OBJECT) {
-		jsonMarshal, err := typeSchema.Properties.MarshalJSON()
-		if err != nil {
-			log.Printf("ERROR in Marshal: %v", err)
-			return err
-		}
-	
-		jsonMarshal, _ = replaceStringInJSON(jsonMarshal, "#/definitions/", "#/components/schemas/")
-	
-		mapOfProperties := map[string]interface{}{}
-		err = json.Unmarshal(jsonMarshal, &mapOfProperties)
-		if err != nil {
-			log.Printf("ERROR in Unmarshal: %v", err)
-			return err
-		}
-	
-		msg.OneOf1Ens().WithMessageEntity(spec.MessageEntity{
-			MessageID: message,
-			Payload: map[string]interface{}{
-				"properties": mapOfProperties,
-				"type": typeSchema.Type[0],
-			},
-		})
-	} else {
-		msg.OneOf1Ens().WithMessageEntity(spec.MessageEntity{
-			MessageID: message,
-			Payload: map[string]interface{}{
-				"type": typeSchema.Type[0],
-			},
-		})
+	msg, err := asyncScope.createMessage(typeSchema, message)
+	if err != nil {
+		return err
 	}
 
+	asyncScope.addOperation(operationID, operationAction, channel, msg)
+	return nil
+}
+
+// Validates the comment line and ensures it matches the required pattern.
+func (asyncScope *AsyncScope) validateCommentLine(commentLine string) ([]string, error) {
+	matches := operationCommentPattern.FindStringSubmatch(commentLine)
+	if len(matches) < 5 {
+		return nil, fmt.Errorf("missing required comment parameters: \"%s\"", commentLine)
+	}
+	return matches, nil
+}
+
+// Determines the operation ID and the argument start index.
+func (asyncScope *AsyncScope) determineOperationID(funcName *string, matches []string) (string, int, error) {
+	if matches[4] == "" {
+		if funcName == nil {
+			return "", 0, fmt.Errorf("unable to determine operation ID from comment line")
+		}
+		return *funcName, 1, nil
+	}
+	return matches[1], 2, nil
+}
+
+// Validates the operation kind and ensures it is either "send" or "receive".
+func (asyncScope *AsyncScope) validateOperationAction(action string, commentLine string) (OperationAction, error) {
+	if action == string(Send) || action == string(Receive) {
+		return OperationAction(action), nil
+	}
+	return "", fmt.Errorf("invalid operation action '%s' in comment line '%s'. Valid values are 'send' or 'receive'", action, commentLine)
+}
+
+// Creates a message based on the type schema and message ID.
+func (asyncScope *AsyncScope) createMessage(typeSchema *typeSpec.Schema, messageID string) (spec.Message, error) {
+	msg := spec.Message{}
+
+	payload := map[string]interface{}{"type": typeSchema.Type[0]}
+	if typeSchema.Type[0] == OBJECT {
+		properties, err := asyncScope.marshalProperties(typeSchema)
+		if err != nil {
+			return msg, err
+		}
+		payload["properties"] = properties
+	}
+
+	msg.OneOf1Ens().WithMessageEntity(spec.MessageEntity{
+		MessageID: messageID,
+		Payload:   payload,
+	})
+
+	return msg, nil
+}
+
+// Marshals and processes type schema properties.
+func (asyncScope *AsyncScope) marshalProperties(typeSchema *typeSpec.Schema) (map[string]interface{}, error) {
+	jsonData, err := typeSchema.Properties.MarshalJSON()
+	if err != nil {
+		log.Printf("ERROR in Marshal: %v", err)
+		return nil, err
+	}
+
+	jsonData, _ = replaceStringInJSON(jsonData, "#/definitions/", "#/components/schemas/")
+
+	var properties map[string]interface{}
+	if err := json.Unmarshal(jsonData, &properties); err != nil {
+		log.Printf("ERROR in Unmarshal: %v", err)
+		return nil, err
+	}
+
+	return properties, nil
+}
+
+// Adds an operation to the async scope.
+func (asyncScope *AsyncScope) addOperation(operationID string, action OperationAction, channel string, msg spec.Message) {
 	operation := spec.Operation{}
 	operation.WithID(operationID).WithMessage(msg)
 
 	asyncScope.operations[operationID] = &OperationWithChannel{
-		action: operationKind,
-		channel: channel,
+		action:    action,
+		channel:   channel,
 		Operation: operation,
 	}
-
-	return nil
 }
 
+// Replace all occurrences of oldValue with newValue
 func replaceStringInJSON(originalJSON []byte, oldValue, newValue string) ([]byte, error) {
-	// Replace all occurrences of oldValue with newValue
 	updatedJSON := bytes.ReplaceAll(originalJSON, []byte(oldValue), []byte(newValue))
 	return updatedJSON, nil
 }
