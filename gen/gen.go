@@ -230,66 +230,8 @@ func (g *Gen) Build(config *Config) error {
 		return err
 	}
 
-	asyncAPI := p.GetAsyncAPI()
-
-	if len(asyncAPI.Servers) > 0 || len(asyncAPI.Channels) > 0 {
-		asyncAPI.Info.Title = swagger.Info.Title
-		asyncAPI.Info.Description = swagger.Info.Description
-		asyncAPI.Info.Version = swagger.Info.Version
-
-		if err := validateAsyncAPIServers(asyncAPI); err != nil {
-			return err
-		}
-
-		reflector := &asyncReflector.Reflector{Schema: asyncAPI}
-		for channelName, channel := range asyncAPI.Channels {
-			if err := validateAsyncAPIChannel(asyncAPI, &channel); err != nil {
-				return fmt.Errorf("channel '%s' is invalid: %w", channelName, err)
-			}
-			reflector.AddChannel(asyncReflector.ChannelInfo{
-				Name: channelName,
-				BaseChannelItem: &channel,
-			})
-		}
-
-		for definitionKey, definition := range swagger.Definitions {
-			schemaInParsed, _ := findSchemaInParsedSchemas(p, definitionKey)
-			if schemaInParsed.UsedForAsyncAPI {
-				schema := map[string]interface{}{
-					"type": definition.Type[0],
-				}
-					
-				if (definition.Type[0] == swag.OBJECT) {
-					jsonMarshal, err := definition.Properties.MarshalJSON()
-					if err != nil {
-						log.Printf("ERROR in Marshal: %v", err)
-						return err
-					}
-		
-					jsonMarshal, _ = replaceStringInJSON(jsonMarshal, "#/definitions/", "#/components/schemas/")
-		
-					mapOfProperties := map[string]interface{}{}
-					err = json.Unmarshal(jsonMarshal, &mapOfProperties)
-					if err != nil {
-						log.Printf("ERROR in Unmarshal: %v", err)
-						return err
-					}
-	
-					schema["properties"] = mapOfProperties
-				}
-	
-				asyncAPI.Components.Schemas[definitionKey] = schema
-			}
-
-			if !schemaInParsed.UsedForOpenAPI {
-				delete(swagger.Definitions, definitionKey)
-			}
-
-		}
-
-		if err := writeDocAsyncAPI(asyncAPI, "asyncapinew.yml"); err != nil {
-			return err
-		}
+	if err := processAsyncAPI(p, swagger); err != nil {
+		return fmt.Errorf("failed to process AsyncAPI spec: %w", err)
 	}
 
 	for _, outputType := range config.OutputTypes {
@@ -305,6 +247,114 @@ func (g *Gen) Build(config *Config) error {
 
 	return nil
 }
+
+func processAsyncAPI(p *swag.Parser, swagger *spec.Swagger) error {
+	asyncAPI := p.GetAsyncAPI()
+
+	if len(asyncAPI.Servers) == 0 && len(asyncAPI.Channels) == 0 {
+		return nil
+	}
+
+	updateAsyncAPIInfo(asyncAPI, swagger)
+
+	if err := validateAsyncAPIServers(asyncAPI); err != nil {
+		return err
+	}
+
+	if err := processAsyncAPIChannels(asyncAPI); err != nil {
+		return err
+	}
+
+	if err := processAsyncAPIDefinitions(p, asyncAPI, swagger); err != nil {
+		return err
+	}
+
+	return writeDocAsyncAPI(asyncAPI, "asyncapinew.yml")
+}
+
+// Updates the AsyncAPI `Info` object with information from the Swagger spec.
+func updateAsyncAPIInfo(asyncAPI *asyncSpec.AsyncAPI, swagger *spec.Swagger) {
+	asyncAPI.Info.Title = swagger.Info.Title
+	asyncAPI.Info.Description = swagger.Info.Description
+	asyncAPI.Info.Version = swagger.Info.Version
+}
+
+// Processes and validates AsyncAPI channels.
+func processAsyncAPIChannels(asyncAPI *asyncSpec.AsyncAPI) error {
+	reflector := &asyncReflector.Reflector{Schema: asyncAPI}
+
+	for channelName, channel := range asyncAPI.Channels {
+		if err := validateAsyncAPIChannel(asyncAPI, &channel); err != nil {
+			return fmt.Errorf("channel '%s' is invalid: %w", channelName, err)
+		}
+
+		reflector.AddChannel(asyncReflector.ChannelInfo{
+			Name:           channelName,
+			BaseChannelItem: &channel,
+		})
+	}
+
+	return nil
+}
+
+// Processes AsyncAPI definitions and updates schemas in the AsyncAPI `Components` object.
+func processAsyncAPIDefinitions(p *swag.Parser, asyncAPI *asyncSpec.AsyncAPI, swagger *spec.Swagger) error {
+	for definitionKey, definition := range swagger.Definitions {
+		schemaInParsed, _ := findSchemaInParsedSchemas(p, definitionKey)
+
+		if schemaInParsed.UsedForAsyncAPI {
+			schema, err := createAsyncAPISchema(&definition)
+			if err != nil {
+				return err
+			}
+
+			asyncAPI.Components.Schemas[definitionKey] = schema
+		}
+
+		if !schemaInParsed.UsedForOpenAPI {
+			delete(swagger.Definitions, definitionKey)
+		}
+	}
+
+	return nil
+}
+
+// Creates an AsyncAPI schema from a Swagger definition.
+func createAsyncAPISchema(definition *spec.Schema) (map[string]interface{}, error) {
+	schema := map[string]interface{}{
+		"type": definition.Type[0],
+	}
+
+	if definition.Type[0] == swag.OBJECT {
+		properties, err := marshalDefinitionProperties(&definition.Properties)
+		if err != nil {
+			return nil, err
+		}
+		schema["properties"] = properties
+	}
+
+	return schema, nil
+}
+
+// Marshals Swagger definition properties into a map.
+func marshalDefinitionProperties(properties *spec.SchemaProperties) (map[string]interface{}, error) {
+	jsonData, err := properties.MarshalJSON()
+	if err != nil {
+		log.Printf("ERROR in Marshal: %v", err)
+		return nil, err
+	}
+
+	jsonData, _ = replaceStringInJSON(jsonData, "#/definitions/", "#/components/schemas/")
+
+	var propertiesMap map[string]interface{}
+	if err := json.Unmarshal(jsonData, &propertiesMap); err != nil {
+		log.Printf("ERROR in Unmarshal: %v", err)
+		return nil, err
+	}
+
+	return propertiesMap, nil
+}
+
 
 func findSchemaInParsedSchemas(parser *swag.Parser, schemaName string) (*swag.Schema, error) {
 	parsedSchemas := parser.GetParsedSchemas()
