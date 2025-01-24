@@ -255,9 +255,6 @@ func (g *Gen) Build(config *Config) error {
 		for definitionKey, definition := range swagger.Definitions {
 			schemaInParsed, _ := findSchemaInParsedSchemas(p, definitionKey)
 			if schemaInParsed.UsedForAsyncAPI {
-				log.Printf("SCHEMA KEY: %v", definitionKey)
-				log.Printf("SCHEMA TYPE: %v", definition.Type)
-				
 				schema := map[string]interface{}{
 					"type": definition.Type[0],
 				}
@@ -364,7 +361,7 @@ func writeDocAsyncAPI(asyncAPI *asyncSpec.AsyncAPI, outputFile string) error {
 		return fmt.Errorf("failed to write AsyncAPI spec file: %w", err)
 	}
 
-	fmt.Printf("AsyncAPI spec written to %s\n", outputFile)
+	log.Printf("asyncAPI spec written to %s\n", outputFile)
 	return nil
 }
 

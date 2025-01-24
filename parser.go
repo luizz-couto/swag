@@ -412,13 +412,6 @@ func (parser *Parser) ParseAPIMultiSearchDir(searchDirs []string, mainAPIFile st
 		}
 	}
 
-	for key, value := range parser.packages.files {
-		log.Printf("key: %v", key.Name.Name)
-		for _, declValue := range value.File.Decls {
-			log.Printf("declValue: %v, %v", declValue.Pos(), declValue.End())
-		}
-	}
-
 	absMainAPIFilePath, err := filepath.Abs(filepath.Join(searchDirs[0], mainAPIFile))
 	if err != nil {
 		return err
@@ -1062,7 +1055,6 @@ func matchExtension(extensionToMatch string, comments []*ast.Comment) (match boo
 func getFuncDoc(decl any) (*ast.CommentGroup, bool) {
 	switch astDecl := decl.(type) {
 	case *ast.FuncDecl: // func name() {}
-		log.Printf("Parsing comment of func: %s", astDecl.Name.Name)
 		return astDecl.Doc, true
 	case *ast.GenDecl: // var name = namePointToFuncDirectlyOrIndirectly
 		if astDecl.Tok != token.VAR {
@@ -1501,10 +1493,6 @@ func (parser *Parser) fillDefinitionDescription(definition *spec.Schema, file *a
 			}
 			definition.Description, err =
 				parser.extractDeclarationDescription(typeName, typeSpec.Doc, typeSpec.Comment, generalDeclaration.Doc)
-
-			
-			log.Printf("definition properties len: %v", definition.Properties.ToOrderedSchemaItems().Len())
-			log.Printf("definition description: %s, err: %v", definition.Description, err)
 
 			if err != nil {
 				return
