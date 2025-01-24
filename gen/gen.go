@@ -396,7 +396,6 @@ func validateAsyncAPIChannel(asyncAPI *asyncSpec.AsyncAPI, channel *asyncSpec.Ch
 }
 
 func replaceStringInJSON(originalJSON []byte, oldValue, newValue string) ([]byte, error) {
-	// Replace all occurrences of oldValue with newValue
 	updatedJSON := bytes.ReplaceAll(originalJSON, []byte(oldValue), []byte(newValue))
 	return updatedJSON, nil
 }
