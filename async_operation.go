@@ -141,7 +141,7 @@ var operationCommentPattern = regexp.MustCompile(`(\S+)\s+(\S+)\s+(\S+)\s*(.*)?`
 // @operation {operationID} {action} {channel} {message}
 // @operation {action} {channel} {message}
 func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLine string, astFile *ast.File) error {
-	matches, err := asyncScope.validateCommentLine(commentLine)
+	matches, err := asyncScope.validateOperationCommentLine(commentLine)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (asyncScope *AsyncScope) ParseOperationComment(funcName *string, commentLin
 }
 
 // Validates the comment line and ensures it matches the required pattern.
-func (asyncScope *AsyncScope) validateCommentLine(commentLine string) ([]string, error) {
+func (asyncScope *AsyncScope) validateOperationCommentLine(commentLine string) ([]string, error) {
 	matches := operationCommentPattern.FindStringSubmatch(commentLine)
 	if len(matches) < 5 {
 		return nil, fmt.Errorf("missing required comment parameters: \"%s\"", commentLine)

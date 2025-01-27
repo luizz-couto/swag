@@ -27,6 +27,17 @@ func TestNewAsyncScope(t *testing.T) {
 	})
 }
 
+func TestAsyncHeaderComment(t *testing.T) {
+	t.Run("parses a valid @server comment", func(t *testing.T) {
+		asyncScope := NewAsyncScope(nil)
+		comment := "@asyncapi"
+
+		err := asyncScope.ParseAsyncAPIComment(nil, comment, nil)
+
+		assert.NoError(t, err)
+	})
+}
+
 func TestParseServerComment(t *testing.T) {
 	t.Run("parses a valid @server comment", func(t *testing.T) {
 		asyncScope := NewAsyncScope(nil)
@@ -90,6 +101,20 @@ func TestParseOperationComment(t *testing.T) {
 		assert.Equal(t, "topic1", asyncScope.operations["myOperation"].channel)
 	})
 
+	t.Run("parses a valid @operation comment - funcName used as operationID", func(t *testing.T) {
+		asyncScope := NewAsyncScope(nil)
+		asyncScope.parser.addTestType("model.OrderRow")
+		funcName := "myOperation"
+
+		comment := `@operation send topic1 model.OrderRow`
+		err := asyncScope.ParseAsyncAPIComment(&funcName, comment, nil)
+
+		assert.NoError(t, err)
+		assert.Contains(t, asyncScope.operations, "myOperation")
+		assert.Equal(t, Send, asyncScope.operations["myOperation"].action)
+		assert.Equal(t, "topic1", asyncScope.operations["myOperation"].channel)
+	})
+
 	t.Run("returns error for invalid @operation comment", func(t *testing.T) {
 		asyncScope := NewAsyncScope(nil)
 		comment := `@operation myOperation invalid topic1 model.OrderRow`
@@ -98,6 +123,26 @@ func TestParseOperationComment(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, "invalid operation action 'invalid' in comment line 'myOperation invalid topic1 model.OrderRow'. Valid values are 'send' or 'receive'", err.Error())
+	})
+
+	t.Run("returns error for invalid @operation comment - missing params", func(t *testing.T) {
+		asyncScope := NewAsyncScope(nil)
+		comment := `@operation model.OrderRow`
+
+		err := asyncScope.ParseAsyncAPIComment(nil, comment, nil)
+
+		assert.Error(t, err)
+		assert.Equal(t, "missing required comment parameters: \"model.OrderRow\"", err.Error())
+	})
+
+	t.Run("returns error for invalid @operation comment - unable to define operationID", func(t *testing.T) {
+		asyncScope := NewAsyncScope(nil)
+		comment := `@operation myOperation topic1 model.OrderRow`
+
+		err := asyncScope.ParseAsyncAPIComment(nil, comment, nil)
+
+		assert.Error(t, err)
+		assert.Equal(t, "unable to determine operation ID from comment line", err.Error())
 	})
 }
 
@@ -110,5 +155,16 @@ func TestReplaceStringInJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, expected, result)
+	})
+}
+
+func TestInvalidCommentAttr(t *testing.T) {
+	t.Run("returns error if unknown attr", func(t *testing.T) {
+		asyncScope := NewAsyncScope(nil)
+		comment := "@unknownAttr somevalue"
+
+		err := asyncScope.ParseAsyncAPIComment(nil, comment, nil)
+		assert.Error(t, err)
+		assert.Equal(t, "unknown attribute '@unknownAttr' in comment '@unknownAttr somevalue'", err.Error())
 	})
 }
