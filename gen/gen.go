@@ -230,7 +230,7 @@ func (g *Gen) Build(config *Config) error {
 		return err
 	}
 
-	if err := processAsyncAPI(p, swagger); err != nil {
+	if err := processAsyncAPI(p, swagger, config); err != nil {
 		return fmt.Errorf("failed to process AsyncAPI spec: %w", err)
 	}
 
@@ -248,7 +248,7 @@ func (g *Gen) Build(config *Config) error {
 	return nil
 }
 
-func processAsyncAPI(p *swag.Parser, swagger *spec.Swagger) error {
+func processAsyncAPI(p *swag.Parser, swagger *spec.Swagger, config *Config) error {
 	asyncAPI := p.GetAsyncAPI()
 
 	if len(asyncAPI.Servers) == 0 && len(asyncAPI.Channels) == 0 {
@@ -269,7 +269,7 @@ func processAsyncAPI(p *swag.Parser, swagger *spec.Swagger) error {
 		return err
 	}
 
-	return writeDocAsyncAPI(asyncAPI, "asyncapinew.yml")
+	return writeDocAsyncAPI(asyncAPI, fmt.Sprintf("%s/asyncapi.yaml", config.OutputDir))
 }
 
 // Updates the AsyncAPI `Info` object with information from the Swagger spec.
